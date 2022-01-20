@@ -13,8 +13,10 @@ const genreRouters = require("./routers/genrerouters");
 const heartRouters = require("./routers/heartrouters");
 const AppError = require("./utils/apperror");
 const errorController = require("./controllers/errorcontroller");
+const cors = require("cors");
 //MIDDLEWARE
-
+app.use(cors());
+app.options("*", cors());
 //security http
 app.use(helmet());
 
