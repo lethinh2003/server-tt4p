@@ -1,4 +1,6 @@
 const Heart = require("../models/heartmodel");
+const User = require("../models/usermodel");
+const Music = require("../models/musicmodel");
 const catchAsync = require("../utils/catchasync");
 const factory = require("./handlefactory");
 exports.getAllHearts = catchAsync(async (req, res, next) => {
@@ -24,9 +26,13 @@ exports.createHeart = catchAsync(async (req, res, next) => {
   if (!req.body.user) {
     req.body.user = req.user._id;
   }
-  const newHeart = await Heart.create(req.body);
-  res.status(201).json({
-    status: "success",
-    data: newHeart,
-  });
+  const checkUser = await User.findById(req.body.user);
+  const checkMusic = await Music.findById(req.body.music);
+  if (checkUser && checkMusic) {
+    const newHeart = await Heart.create(req.body);
+    res.status(201).json({
+      status: "success",
+      data: newHeart,
+    });
+  }
 });
