@@ -37,6 +37,11 @@ const musicSchema = new mongoose.Schema(
           required: [true, "Missing thumbnail info"],
           trim: true,
         },
+        link: {
+          type: String,
+          required: [true, "Missing link info"],
+          trim: true,
+        },
         rating: {
           type: Number,
           default: 0,
