@@ -73,7 +73,7 @@ exports.getAll = (Model) =>
       const fields = req.query.fields.split(",").join(" ");
       query = query.select(fields);
     } else {
-      query = query.select("-__v -artist._id -genres._id -info._id");
+      query = query.select("-__v ");
       // - tien to de k muon hien ra screen
     }
     //pagination

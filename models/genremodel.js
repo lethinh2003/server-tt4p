@@ -7,6 +7,11 @@ const genreSchema = new mongoose.Schema({
     trim: true,
     unique: true,
   },
+  thumbnail: {
+    type: String,
+    trim: true,
+    unique: true,
+  },
   keyword: String,
   slug: String,
 });
