@@ -37,14 +37,16 @@ exports.updateOne = (Model) =>
   });
 exports.getOne = (Model, Optional) =>
   catchAsync(async (req, res, next) => {
-    const doc = await Model.findById(req.params.id).populate(Optional);
+    const doc = await Model.findById(req.params.id)
+      .populate(Optional)
+      .select("-__v");
     if (!doc) {
       return next(new AppError("No document find with that id", 404));
     }
     res.status(200).json({
       status: "success",
       data: {
-        doc,
+        data: doc,
       },
     });
   });
@@ -71,7 +73,7 @@ exports.getAll = (Model) =>
       const fields = req.query.fields.split(",").join(" ");
       query = query.select(fields);
     } else {
-      query = query.select("-__v -artists._id -genres._id -info._id");
+      query = query.select("-__v -artist._id -genres._id -info._id");
       // - tien to de k muon hien ra screen
     }
     //pagination

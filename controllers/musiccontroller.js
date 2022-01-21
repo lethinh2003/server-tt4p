@@ -7,13 +7,12 @@ exports.getTopViewsDayMusics = (req, res, next) => {
   req.query.sort = "info.views";
   next();
 };
-exports.getAllMusics = factory.getAll(Music).select("-artist._id -_id");
-exports.getMusic = factory
-  .getOne(Music, {
-    path: "hearts",
-    select: "-__v -_id ",
-  })
-  .select("-__v");
+exports.getAllMusics = factory.getAll(Music);
+exports.getMusic = factory.getOne(Music, {
+  path: "hearts",
+  select: "-__v -_id ",
+});
+
 exports.updateMusic = factory.updateOne(Music);
 exports.deleteMusic = factory.deleteOne(Music);
 exports.createMusic = factory.createOne(Music);
