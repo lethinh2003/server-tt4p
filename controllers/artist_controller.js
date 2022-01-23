@@ -1,6 +1,6 @@
-const Artist = require("../models/artistmodel");
-const catchAsync = require("../utils/catchasync");
-const factory = require("./handlefactory");
+const Artist = require("../models/artist_model");
+const catchAsync = require("../utils/catch_async");
+const factory = require("./handle_factory");
 exports.getAllArtists = factory.getAll(Artist);
 exports.getArtist = factory.getOne(Artist);
 exports.updateArtist = factory.updateOne(Artist);

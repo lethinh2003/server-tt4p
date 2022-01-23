@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
-const Artist = require("../models/artistmodel");
+const Artist = require("../models/artist_model");
 const musicSchema = new mongoose.Schema(
   {
     artist: [

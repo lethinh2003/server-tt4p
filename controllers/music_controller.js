@@ -1,6 +1,6 @@
-const Music = require("../models/musicmodel");
-const catchAsync = require("../utils/catchasync");
-const factory = require("./handlefactory");
+const Music = require("../models/music_model");
+const catchAsync = require("../utils/catch_async");
+const factory = require("./handle_factory");
 
 exports.getTopViewsDayMusics = (req, res, next) => {
   req.query.limit = 5;

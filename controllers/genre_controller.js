@@ -1,6 +1,6 @@
-const Genre = require("../models/genremodel");
-const catchAsync = require("../utils/catchasync");
-const factory = require("./handlefactory");
+const Genre = require("../models/genre_model");
+const catchAsync = require("../utils/catch_async");
+const factory = require("./handle_factory");
 exports.getAllGenres = factory.getAll(Genre);
 exports.getGenre = factory.getOne(Genre);
 exports.updateGenre = factory.updateOne(Genre);

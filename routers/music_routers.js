@@ -1,8 +1,8 @@
 const express = require("express");
-const musicController = require("../controllers/musiccontroller");
-const heartController = require("../controllers/heartcontroller");
-const authController = require("../controllers/authcontroller");
-const heartRouters = require("./heartrouters");
+const musicController = require("../controllers/music_controller");
+const heartController = require("../controllers/heart_controller");
+const authController = require("../controllers/auth_controller");
+const heartRouters = require("./heart_routers");
 
 const router = express.Router();
 router.use("/:idMusic/hearts", heartRouters);

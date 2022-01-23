@@ -1,5 +1,5 @@
-const catchAsync = require("../utils/catchasync");
-const AppError = require("../utils/apperror");
+const catchAsync = require("../utils/catch_async");
+const AppError = require("../utils/app_error");
 exports.deleteOne = (Model) =>
   catchAsync(async (req, res, next) => {
     const doc = await Model.findByIdAndDelete(req.params.id);

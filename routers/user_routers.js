@@ -1,6 +1,6 @@
 const express = require("express");
-const userController = require("../controllers/usercontroller");
-const authController = require("../controllers/authcontroller");
+const userController = require("../controllers/user_controller");
+const authController = require("../controllers/auth_controller");
 const router = express.Router();
 router.route("/signup").post(authController.signUp);
 router.route("/login").post(authController.login);

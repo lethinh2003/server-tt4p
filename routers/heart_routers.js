@@ -1,6 +1,6 @@
 const express = require("express");
-const heartController = require("../controllers/heartcontroller");
-const authController = require("../controllers/authcontroller");
+const heartController = require("../controllers/heart_controller");
+const authController = require("../controllers/auth_controller");
 const router = express.Router({ mergeParams: true });
 
 router

@@ -1,9 +1,9 @@
-const User = require("../models/usermodel");
+const User = require("../models/user_model");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
-const catchAsync = require("../utils/catchasync");
-const AppError = require("../utils/apperror");
+const catchAsync = require("../utils/catch_async");
+const AppError = require("../utils/app_error");
 
 const sendEmail = require("../utils/email");
 const signToken = (id) => {
