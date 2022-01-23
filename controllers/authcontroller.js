@@ -150,6 +150,7 @@ exports.login = catchAsync(async (req, res, next) => {
 //SIGNUP///
 exports.signUp = catchAsync(async (req, res, next) => {
   const newUser = await User.create(req.body);
+  const user = await User.findById(newUser._id).select("-__v -password");
   const token = signToken(newUser._id);
   const cookieOptions = {
     expires: new Date(
@@ -162,7 +163,7 @@ exports.signUp = catchAsync(async (req, res, next) => {
   res.status(201).json({
     status: "success",
     token,
-    data: newUser,
+    data: user,
   });
 });
 
