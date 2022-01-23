@@ -28,7 +28,11 @@ exports.createHeart = catchAsync(async (req, res, next) => {
   }
   const checkUser = await User.findById(req.body.user);
   const checkMusic = await Music.findById(req.body.music);
-  if (checkUser && checkMusic) {
+  const checkUserHeartedMusic = await Heart.findById({
+    user: [req.body.user],
+    music: [req.body.music],
+  });
+  if (checkUser && checkMusic && !checkUserHeartedMusic) {
     const newHeart = await Heart.create(req.body);
     res.status(201).json({
       status: "success",
