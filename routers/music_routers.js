@@ -3,9 +3,11 @@ const musicController = require("../controllers/music_controller");
 const heartController = require("../controllers/heart_controller");
 const authController = require("../controllers/auth_controller");
 const heartRouters = require("./heart_routers");
+const playlistRouters = require("./playlist_routers");
 
 const router = express.Router();
 router.use("/:idMusic/hearts", heartRouters);
+router.use("/:idMusic/playlists", playlistRouters);
 router
   .route("/top-views-day")
   .get(musicController.getTopViewsDayMusics, musicController.getAllMusics);

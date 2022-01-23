@@ -11,6 +11,7 @@ const userRouters = require("./routers/user_routers");
 const artistRouters = require("./routers/artist_routers");
 const genreRouters = require("./routers/genre_routers");
 const heartRouters = require("./routers/heart_routers");
+const playlistRouters = require("./routers/playlist_routers");
 const AppError = require("./utils/app_error");
 const errorController = require("./controllers/error_controller");
 const cors = require("cors");
@@ -60,6 +61,7 @@ app.use("/api/v1/users", userRouters);
 app.use("/api/v1/artists", artistRouters);
 app.use("/api/v1/genres", genreRouters);
 app.use("/api/v1/hearts", heartRouters);
+app.use("/api/v1/playlists", playlistRouters);
 app.all("*", (req, res, next) => {
   next(new AppError(`No found ${req.originalUrl}`, 404));
 });
