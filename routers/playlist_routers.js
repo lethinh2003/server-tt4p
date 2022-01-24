@@ -10,10 +10,13 @@ router
     authController.reStrictTo("admin"),
     playlistController.getAllPlaylists
   )
-  .post(authController.protect, playlistController.createPlaylist);
+  .post(authController.protect, playlistController.createPlaylist)
+  .delete(authController.protect, playlistController.deletePlaylist);
 
 router
   .route("/:userId")
-  .get(authController.protect, playlistController.getPlaylist)
-  .delete(playlistController.deletePlaylist);
+  .get(authController.protect, playlistController.getPlaylist);
+router
+  .route("/:userId/:musicId")
+  .delete(authController.protect, playlistController.deletePlaylist);
 module.exports = router;

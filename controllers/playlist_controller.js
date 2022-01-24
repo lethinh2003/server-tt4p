@@ -34,7 +34,20 @@ exports.getPlaylist = catchAsync(async (req, res, next) => {
     },
   });
 });
-exports.deletePlaylist = factory.deleteOne(Playlist);
+exports.deletePlaylist = catchAsync(async (req, res, next) => {
+  const doc = await Playlist.findOneAndDelete({
+    user: { $in: [req.params.userId] },
+    music: { $in: [req.params.musicId] },
+  });
+  if (!doc) {
+    return next(new AppError("No document find with that id", 404));
+  }
+
+  res.status(204).json({
+    status: "success",
+    message: "Music deleted",
+  });
+});
 
 exports.createPlaylist = catchAsync(async (req, res, next) => {
   if (!req.body.music) {
