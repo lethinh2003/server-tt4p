@@ -7,6 +7,12 @@ exports.getTopViewsDayMusics = (req, res, next) => {
   req.query.sort = "info.views";
   next();
 };
+exports.getNewMusics = (req, res, next) => {
+  req.query.limit = 10;
+  req.query.sort = "-info.createdAt";
+  next();
+};
+
 exports.getAllMusics = factory.getAll(Music);
 exports.getMusic = factory.getOne(Music, {
   path: "hearts",

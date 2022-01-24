@@ -56,8 +56,8 @@ const musicSchema = new mongoose.Schema(
           default: 0,
         },
         createdAt: {
-          type: Date,
-          default: Date.now(),
+          type: Number,
+          default: Math.floor(Date.now() / 1000),
         },
       },
     ],

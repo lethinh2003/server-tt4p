@@ -11,6 +11,9 @@ router.use("/:idMusic/playlists", playlistRouters);
 router
   .route("/top-views-day")
   .get(musicController.getTopViewsDayMusics, musicController.getAllMusics);
+router
+  .route("/new-musics")
+  .get(musicController.getNewMusics, musicController.getAllMusics);
 
 router
   .route("/")
