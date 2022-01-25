@@ -1,11 +1,40 @@
 const User = require("../models/user_model");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const AppError = require("../utils/app_error");
+const catchAsync = require("../utils/catch_async");
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET_KEY, {
     expiresIn: process.env.JWT_EXPIRES,
   });
 };
+
+exports.uploadAvatar = catchAsync(async (req, res, next) => {
+  if (!req.file) {
+    return next(new AppError("No file uploaded!", 404));
+  }
+  return res.status(200).json({
+    status: "success",
+    data: req.file.path,
+  });
+});
+exports.updateUser = catchAsync(async (req, res, next) => {
+  const body = {
+    avatar: req.body.avatar,
+    name: req.body.name,
+  };
+  const user = await User.findByIdAndUpdate(req.user._id, body, {
+    new: true,
+    runValidators: true,
+  });
+  if (!user) {
+    return next(new AppError("No user updated!", 404));
+  }
+  return res.status(200).json({
+    status: "success",
+    data: user,
+  });
+});
 
 exports.login = async (req, res) => {
   const { account, password } = req.body;
