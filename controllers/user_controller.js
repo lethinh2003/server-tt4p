@@ -26,7 +26,7 @@ exports.updateUser = catchAsync(async (req, res, next) => {
   const user = await User.findByIdAndUpdate(req.user._id, body, {
     new: true,
     runValidators: true,
-  });
+  }).select("-password -passwordChangedAt -__v ");
   if (!user) {
     return next(new AppError("No user updated!", 404));
   }
