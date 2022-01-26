@@ -19,12 +19,12 @@ exports.uploadAvatar = catchAsync(async (req, res, next) => {
   });
 });
 exports.updateUser = catchAsync(async (req, res, next) => {
+  const id = req.body._id;
   const body = {
-    _id: req.body._id,
     avatar: req.body.avatar,
     name: req.body.name,
   };
-  const user = await User.findByIdAndUpdate(_id, body, {
+  const user = await User.findByIdAndUpdate(id, body, {
     new: true,
     runValidators: true,
   }).select("-password -passwordChangedAt -__v ");
