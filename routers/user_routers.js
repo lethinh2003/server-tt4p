@@ -6,24 +6,10 @@ const fileUploader = require("../configs/cloudinary.config");
 router.route("/signup").post(authController.signUp);
 router.route("/login").post(authController.login);
 router.route("/forgotPassword").post(authController.forgotPassword);
-router.route("/resetPassword/:token").post(authController.resetPassword);
-router
-  .route("/updatePassword")
-  .post(authController.protect, authController.updatePassword);
-router
-  .route("/")
-  .get(
-    authController.protect,
-    authController.reStrictTo("admin", "user"),
-    userController.getAllUsers
-  );
-router
-  .route("/upload-avatar")
-  .post(
-    authController.protect,
-    fileUploader.single("file"),
-    userController.uploadAvatar
-  );
+router.route("/resetPassword/:token").get(authController.checkTokenResetPassword).post(authController.resetPassword);
+router.route("/updatePassword").post(authController.protect, authController.updatePassword);
+router.route("/").get(authController.protect, authController.reStrictTo("admin", "user"), userController.getAllUsers);
+router.route("/upload-avatar").post(authController.protect, fileUploader.single("file"), userController.uploadAvatar);
 router.route("/update").post(authController.protect, userController.updateUser);
 
 // router
