@@ -37,9 +37,7 @@ exports.updateOne = (Model) =>
   });
 exports.getOne = (Model, Optional) =>
   catchAsync(async (req, res, next) => {
-    const doc = await Model.findById(req.params.id)
-      .populate(Optional)
-      .select("-__v");
+    const doc = await Model.findById(req.params.id).populate(Optional).select("-__v");
     if (!doc) {
       return next(new AppError("No document find with that id", 404));
     }
@@ -50,7 +48,7 @@ exports.getOne = (Model, Optional) =>
       },
     });
   });
-exports.getAll = (Model) =>
+exports.getAll = (Model, Optional) =>
   catchAsync(async (req, res, next) => {
     const queryObj = { ...req.query };
     //filtering
@@ -59,7 +57,7 @@ exports.getAll = (Model) =>
     let queryStr = JSON.stringify(queryObj);
     queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
     queryNewObj = JSON.parse(queryStr);
-    let query = Model.find(queryNewObj);
+    let query = Model.find(queryNewObj).populate(Optional);
 
     //Sort
     if (req.query.sort) {

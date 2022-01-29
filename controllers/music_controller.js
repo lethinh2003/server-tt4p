@@ -13,7 +13,10 @@ exports.getNewMusics = (req, res, next) => {
   next();
 };
 
-exports.getAllMusics = factory.getAll(Music);
+exports.getAllMusics = factory.getAll(Music, {
+  path: "hearts",
+  select: "-__v -_id ",
+});
 exports.getMusic = factory.getOne(Music, {
   path: "hearts",
   select: "-__v -_id ",
