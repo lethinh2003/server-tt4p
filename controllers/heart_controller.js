@@ -37,14 +37,15 @@ exports.createHeart = catchAsync(async (req, res, next) => {
   if (!req.body.user) {
     req.body.user = req.user._id;
   }
-  const checkUser = await User.findById(req.body.user);
-  const checkMusic = await Music.findById(req.body.music);
-  const checkUserHeartedMusic = await Heart.find({
+  const checkUser = User.findById(req.body.user);
+  const checkMusic = Music.findById(req.body.music);
+  const checkUserHeartedMusic = Heart.find({
     user: { $in: [req.body.user] },
     music: { $in: [req.body.music] },
   });
-  if (checkUser && checkMusic) {
-    if (checkUserHeartedMusic && checkUserHeartedMusic.length > 0) {
+
+  await Promise.all([checkUser, checkMusic, checkUserHeartedMusic]).then(async (data) => {
+    if (data[2].length > 0) {
       return next(new AppError("You have hearted this music!", 401));
     }
     const newHeart = await Heart.create(req.body);
@@ -52,5 +53,16 @@ exports.createHeart = catchAsync(async (req, res, next) => {
       status: "success",
       data: newHeart,
     });
-  }
+  });
+
+  // if (checkUser && checkMusic) {
+  //   if (checkUserHeartedMusic && checkUserHeartedMusic.length > 0) {
+  //     return next(new AppError("You have hearted this music!", 401));
+  //   }
+  //   // const newHeart = await Heart.create(req.body);
+  //   res.status(201).json({
+  //     status: "success",
+  //     data: newHeart,
+  //   });
+  // }
 });
