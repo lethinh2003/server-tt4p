@@ -17,6 +17,16 @@ exports.getAllHearts = catchAsync(async (req, res, next) => {
     },
   });
 });
+exports.getAllHeartsByUserId = catchAsync(async (req, res, next) => {
+  const filter = { user: req.params.userId };
+  const hearts = await Heart.find(filter);
+  res.status(200).json({
+    status: "success",
+    data: {
+      data: hearts,
+    },
+  });
+});
 exports.getHeart = factory.getOne(Heart);
 exports.deleteHeart = factory.deleteOne(Heart);
 
