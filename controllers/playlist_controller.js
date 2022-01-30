@@ -56,14 +56,14 @@ exports.createPlaylist = catchAsync(async (req, res, next) => {
   if (!req.body.user) {
     req.body.user = req.user._id;
   }
-  const checkUser = User.findById(req.body.user);
-  const checkMusic = Music.findById(req.body.music);
-  const checkUserPlaylistMusic = Playlist.find({
+  const checkUser = await User.findById(req.body.user);
+  const checkMusic = await Music.findById(req.body.music);
+  const checkUserPlaylistMusic = await Playlist.find({
     user: { $in: [req.body.user] },
     music: { $in: [req.body.music] },
   });
-  await Promise.all([checkUser, checkMusic, checkUserPlaylistMusic]).then(async (data) => {
-    if (data[2].length > 0) {
+  if (checkUser && checkMusic) {
+    if (checkUserPlaylistMusic && checkUserPlaylistMusic.length > 0) {
       return next(new AppError("You have added this music in your playlist!", 401));
     }
     const newPlaylist = await Playlist.create(req.body);
@@ -71,5 +71,5 @@ exports.createPlaylist = catchAsync(async (req, res, next) => {
       status: "success",
       data: newPlaylist,
     });
-  });
+  }
 });
