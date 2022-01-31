@@ -16,51 +16,39 @@ const musicSchema = new mongoose.Schema(
         ref: "Genre",
       },
     ],
-    info: [
-      {
-        name: {
-          type: String,
-          required: [true, "Missing name info"],
-          trim: true,
-        },
-        slug: String,
-        hide: {
-          type: Boolean,
-          default: false,
-          enum: {
-            values: [true, false],
-            message: "Hide is true or false",
-          },
-        },
-        thumbnail: {
-          type: String,
-          required: [true, "Missing thumbnail info"],
-          trim: true,
-        },
-        link: {
-          type: String,
-          required: [true, "Missing link info"],
-          trim: true,
-        },
-        rating: {
-          type: Number,
-          default: 0,
-          max: [5, "max rating is 5 "],
-        },
-        views: {
-          type: Number,
-          default: 0,
-        },
-        hearts: {
-          type: Number,
-          default: 0,
-        },
-        createdAt: {
-          type: Number,
-          default: Math.floor(Date.now() / 1000),
-        },
+    name: {
+      type: String,
+      required: [true, "Missing name info"],
+      trim: true,
+    },
+    slug: String,
+    hide: {
+      type: Boolean,
+      default: false,
+      enum: {
+        values: [true, false],
+        message: "Hide is true or false",
       },
-    ],
+    },
+    thumbnail: {
+      type: String,
+      required: [true, "Missing thumbnail info"],
+      trim: true,
+    },
+    link: {
+      type: String,
+      required: [true, "Missing link info"],
+      trim: true,
+    },
+
+    views: {
+      type: Number,
+      default: 0,
+    },
+    createdAt: {
+      type: Number,
+      default: Math.floor(Date.now() / 1000),
+    },
   },
 
   {
@@ -75,7 +63,7 @@ const musicSchema = new mongoose.Schema(
 
 //document middleware runs before save() and create()
 musicSchema.pre("save", function (next) {
-  this.info[0].slug = slugify(this.info[0].name, { lower: true });
+  this.slug = slugify(this.name, { lower: true });
   next();
 });
 musicSchema.pre(/^find/, function (next) {
