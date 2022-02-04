@@ -56,6 +56,7 @@ exports.uploadThumbnail = catchAsync(async (req, res, next) => {
   });
 });
 exports.uploadLink = catchAsync(async (req, res, next) => {
+  console.log(req.file);
   if (!req.file) {
     return next(new AppError("No file uploaded!", 404));
   }

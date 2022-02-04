@@ -10,6 +10,9 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary,
+  params: {
+    resource_type: "auto",
+  },
   allowedFormats: ["jpg", "png", "mp3", "m4a", "wav", "ogg"],
   filename: function (req, file, cb) {
     cb(null, file.originalname);
