@@ -10,7 +10,7 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  allowedFormats: ["jpg", "png"],
+  allowedFormats: ["jpg", "png", "mp3", "m4a", "wav", "ogg"],
   filename: function (req, file, cb) {
     cb(null, file.originalname);
   },

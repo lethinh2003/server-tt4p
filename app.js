@@ -12,8 +12,10 @@ const artistRouters = require("./routers/artist_routers");
 const genreRouters = require("./routers/genre_routers");
 const heartRouters = require("./routers/heart_routers");
 const playlistRouters = require("./routers/playlist_routers");
+const searchRouters = require("./routers/search_routers");
 const AppError = require("./utils/app_error");
 const errorController = require("./controllers/error_controller");
+
 const cors = require("cors");
 //MIDDLEWARE
 app.use(cors());
@@ -56,6 +58,7 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
   res.status(200).send("404 Not Found");
 });
+app.use("/api/v1/search", searchRouters);
 app.use("/api/v1/musics", musicRouters);
 app.use("/api/v1/users", userRouters);
 app.use("/api/v1/artists", artistRouters);
