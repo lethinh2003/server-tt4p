@@ -21,7 +21,7 @@ const artistSchema = new mongoose.Schema({
 // });
 artistSchema.pre("save", function (next) {
   this.slug = slugify(this.name, { lower: true });
-  this.thumbnail = `/images/artists/${this.slug}.png`;
+
   next();
 });
 
