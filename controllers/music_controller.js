@@ -3,7 +3,9 @@ const catchAsync = require("../utils/catch_async");
 const factory = require("./handle_factory");
 
 exports.getTopViewsDayMusics = (req, res, next) => {
-  req.query.limit = 5;
+  if (!req.query.limit) {
+    req.query.limit = 5;
+  }
   req.query.sort = "-views";
   next();
 };
