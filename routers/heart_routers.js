@@ -4,7 +4,7 @@ const authController = require("../controllers/auth_controller");
 const router = express.Router({ mergeParams: true });
 
 router.route("/").get(heartController.getAllHearts).post(authController.protect, heartController.createHeart);
-
-router.route("/:userId").get(authController.protect, heartController.getAllHeartsByUserId);
 router.route("/:id").get(heartController.getHeart).delete(heartController.deleteHeart);
+
+router.route("/user/:userId").get(authController.protect, heartController.getAllHeartsByUserId);
 module.exports = router;

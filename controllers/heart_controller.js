@@ -18,6 +18,7 @@ exports.getAllHearts = catchAsync(async (req, res, next) => {
   });
 });
 exports.getAllHeartsByUserId = catchAsync(async (req, res, next) => {
+  console.log(req.params);
   const filter = { user: req.params.userId };
   const hearts = await Heart.find(filter);
   res.status(200).json({
