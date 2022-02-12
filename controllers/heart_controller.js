@@ -54,9 +54,8 @@ exports.createHeart = catchAsync(async (req, res, next) => {
   if (!req.body.music) {
     req.body.music = req.params.idMusic;
   }
-  if (!req.body.user) {
-    req.body.user = req.user._id;
-  }
+  req.body.user = req.user._id;
+
   const checkUser = User.findById(req.body.user);
   const checkMusic = Music.findById(req.body.music);
   const checkUserHeartedMusic = Heart.find({

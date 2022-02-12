@@ -63,7 +63,10 @@ exports.createPlaylist = catchAsync(async (req, res, next) => {
     if (data[2].length > 0) {
       return next(new AppError("You have added this music in your playlist!", 401));
     }
-    const newPlaylist = await Playlist.create(req.body);
+    const newPlaylist = await Playlist.create({
+      user: [req.user._id],
+      music: [req.body.music],
+    });
     res.status(201).json({
       status: "success",
       data: newPlaylist,
