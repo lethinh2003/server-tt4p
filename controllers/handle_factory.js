@@ -37,7 +37,9 @@ exports.updateOne = (Model) =>
   });
 exports.getOne = (Model, Optional) =>
   catchAsync(async (req, res, next) => {
-    const doc = await Model.findById(req.params.id).populate(Optional).select("-__v");
+    const doc = await Model.findById(req.params.id)
+      .populate(Optional)
+      .select("-__v -password -passwordChangedAt -passwordResetToken -passwordResetTokenExpires -email");
     if (!doc) {
       return next(new AppError("No document find with that id", 404));
     }

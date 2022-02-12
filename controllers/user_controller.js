@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const AppError = require("../utils/app_error");
 const catchAsync = require("../utils/catch_async");
+const factory = require("./handle_factory");
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET_KEY, {
     expiresIn: process.env.JWT_EXPIRES,
@@ -82,6 +83,7 @@ exports.createUser = async (req, res) => {
     });
   }
 };
+exports.getUser = factory.getOne(User);
 
 exports.getAllUsers = async (req, res) => {
   try {
