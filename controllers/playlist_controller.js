@@ -53,13 +53,10 @@ exports.createPlaylist = catchAsync(async (req, res, next) => {
   if (!req.body.music) {
     req.body.music = req.params.idMusic;
   }
-  if (!req.body.user) {
-    req.body.user = req.user._id;
-  }
-  const checkUser = User.findById(req.body.user);
+  const checkUser = User.findById(req.user._id);
   const checkMusic = Music.findById(req.body.music);
   const checkUserPlaylistMusic = Playlist.find({
-    user: { $in: [req.body.user] },
+    user: { $in: [req.user._id] },
     music: { $in: [req.body.music] },
   });
   await Promise.all([checkUser, checkMusic, checkUserPlaylistMusic]).then(async (data) => {

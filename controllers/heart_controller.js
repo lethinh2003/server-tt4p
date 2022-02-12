@@ -29,13 +29,10 @@ exports.getAllHeartsByUserId = catchAsync(async (req, res, next) => {
 });
 exports.getHeart = factory.getOne(Heart);
 exports.deleteHeart = catchAsync(async (req, res, next) => {
-  if (!req.body.user) {
-    req.body.user = req.user._id;
-  }
-  const checkUser = User.findById(req.body.user);
+  const checkUser = User.findById(req.user._id);
   const checkMusic = Music.findById(req.body.music);
   const checkUserHeartedMusic = Heart.find({
-    user: { $in: [req.body.user] },
+    user: { $in: [req.user._id] },
     music: { $in: [req.body.music] },
   });
 
@@ -44,7 +41,7 @@ exports.deleteHeart = catchAsync(async (req, res, next) => {
       return next(new AppError("You haven't hearted this music before!", 401));
     }
     const newHeart = await Heart.deleteOne({
-      user: { $in: [req.body.user] },
+      user: { $in: [req.user._id] },
       music: { $in: [req.body.music] },
     });
     res.status(201).json({

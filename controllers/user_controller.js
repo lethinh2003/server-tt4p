@@ -20,7 +20,7 @@ exports.uploadAvatar = catchAsync(async (req, res, next) => {
   });
 });
 exports.updateUser = catchAsync(async (req, res, next) => {
-  const id = req.body._id;
+  const id = req.user._id;
   const body = {
     avatar: req.body.avatar,
     name: req.body.name,
