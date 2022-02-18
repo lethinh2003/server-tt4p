@@ -22,6 +22,14 @@ const heartSchema = new mongoose.Schema({
 //   this.keyword = this.slug;
 //   next();
 // });
+// heartSchema.pre(/^find/, function (next) {
+//   this.populate({
+//     path: "music",
+//     select: "-__v",
+//   });
+
+//   next();
+// });
 
 const Heart = mongoose.model("Heart", heartSchema);
 module.exports = Heart;

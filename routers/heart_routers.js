@@ -9,5 +9,5 @@ router.route("/delete").post(authController.protect, heartController.deleteHeart
 
 router.route("/:id").get(heartController.getHeart);
 
-router.route("/user/:userId").get(authController.protect, heartController.getAllHeartsByUserId);
+router.route("/user/:userId").get(heartController.getAllHeartsByUserId);
 module.exports = router;
