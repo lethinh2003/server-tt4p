@@ -8,7 +8,7 @@ exports.getArtist = catchAsync(async (req, res, next) => {
   const getArtistById = Artist.findById(req.params.id);
   const getMusicsByArtist = Music.find({
     artist: { $in: [req.params.id] },
-  }).select("-artist -genres");
+  });
   await Promise.all([getArtistById, getMusicsByArtist]).then(async (data) => {
     res.status(200).json({
       status: "success",
