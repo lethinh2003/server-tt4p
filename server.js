@@ -2,7 +2,9 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 var express = require("express");
 const axios = require("axios");
+const Notify = require("./models/Notify");
 const http = require("http");
+
 var app = express();
 
 const server = http.createServer(app);
@@ -15,17 +17,17 @@ process.on("uncaughtException", (err) => {
 });
 dotenv.config({ path: "./config.env" });
 
-// const DB = process.env.DATABASE.replace("<PASSWORD>", process.env.DATABASE_PASSWORD);
-// mongoose
-//   .connect(DB, {
-//     useNewUrlParser: true,
-//     useCreateIndex: true,
-//     useFindAndModify: false,
-//     useUnifiedTopology: true,
-//   })
-//   .then(() => {
-//     console.log("DB connected");
-//   });
+const DB = process.env.DATABASE;
+mongoose
+  .connect(DB, {
+    useNewUrlParser: true,
+    useCreateIndex: true,
+    useFindAndModify: false,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("DB connected");
+  });
 
 const port = process.env.PORT || 8080;
 const io = require("socket.io")(server, {
@@ -36,6 +38,44 @@ const io = require("socket.io")(server, {
 let allUser = [];
 io.on("connection", (socket) => {
   console.log("New client connected " + socket.id);
+  socket.on("join-notify", (data) => {
+    socket.leave(socket.room_notify);
+    socket.join(data);
+    socket.room_notify = data;
+  });
+  socket.on("get-notify", async (data) => {
+    try {
+      const findNotifies = await Notify.find({
+        account_receive: { $in: [data] },
+      })
+        .sort("-_id")
+        .select("-__v")
+        .populate({
+          path: "account_receive",
+          select: "-__v -password",
+        })
+        .populate({
+          path: "account_send",
+          select: "-__v -password",
+        });
+      io.sockets.in(data).emit("send-notify", findNotifies);
+    } catch (err) {
+      console.log(err);
+    }
+  });
+  socket.on("read-notify", async (data) => {
+    try {
+      await Notify.updateMany(
+        {
+          account_receive: { $in: [data] },
+        },
+        { status: true }
+      );
+      io.sockets.in(data).emit("read-notify");
+    } catch (err) {
+      console.log(err);
+    }
+  });
   socket.on("join-room", (data) => {
     socket.leave(socket.room_code);
     socket.join(data);
