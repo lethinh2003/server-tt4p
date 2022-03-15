@@ -1,7 +1,7 @@
 {
-  "name": "musics",
+  "name": "lethinh-blog-server",
   "version": "1.0.0",
-  "description": "Musics API",
+  "description": "",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -11,6 +11,8 @@
   "author": "Van Thinh Le",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.26.1",
+    "bcrypt": "^5.0.1",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
     "cloudinary": "^1.28.1",
@@ -20,6 +22,7 @@
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^6.1.0",
     "helmet": "^5.0.1",
+    "ip": "^1.1.5",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.13.14",
     "multer": "^1.4.4",
@@ -28,6 +31,7 @@
     "nodemailer-sendgrid-transport": "^0.2.0",
     "nodemon": "^2.0.12",
     "slugify": "^1.6.5",
+    "socket.io": "^4.4.1",
     "validator": "^13.7.0",
     "xss-clean": "^0.1.1"
   },
