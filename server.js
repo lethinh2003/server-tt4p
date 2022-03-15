@@ -33,7 +33,7 @@ mongoose
 const port = process.env.PORT || 8080;
 const io = require("socket.io")(server, {
   cors: {
-    origin: process.env.CLIENT_SOCKET,
+    origin: "*",
   },
 });
 let allUser = [];
