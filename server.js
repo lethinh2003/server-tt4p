@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 var express = require("express");
 const axios = require("axios");
 const Notify = require("./models/Notify");
+const Comment = require("./models/Comment");
 const http = require("http");
 
 var app = express();
@@ -83,8 +84,21 @@ io.on("connection", (socket) => {
   });
   socket.on("get-all-comments", async (codeId) => {
     try {
-      const results = await axios.get(`${process.env.CLIENT_SOCKET}/api/source-code/comments/${codeId}`);
-      io.sockets.in(codeId).emit("send-all-comments", results.data.data);
+      const results = await Comment.find({
+        code: codeId,
+      })
+        .populate({
+          path: "user",
+          select: "-__v -password",
+        })
+        .populate({
+          path: "reply",
+          select: "-__v -password",
+        })
+
+        .sort("-_id")
+        .select("-__v");
+      io.sockets.in(codeId).emit("send-all-comments", results);
     } catch (err) {
       console.log(err);
     }
