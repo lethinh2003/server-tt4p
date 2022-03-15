@@ -33,12 +33,20 @@ mongoose
 const port = process.env.PORT || 8080;
 const io = require("socket.io")(server, {
   cors: {
-    origin: "*",
+    origin: process.env.CLIENT_SOCKET,
   },
 });
 let allUser = [];
 io.on("connection", (socket) => {
   console.log("New client connected " + socket.id);
+  socket.on("join-room-history-likes", (userId) => {
+    socket.leave(socket.room_history_likes);
+    socket.join(userId);
+    socket.room_history_likes = userId;
+  });
+  socket.on("send-room-history-likes", (userId) => {
+    io.sockets.in(userId).emit("send-room-history-likes");
+  });
   socket.on("join-notify", (data) => {
     socket.leave(socket.room_notify);
     socket.join(data);
@@ -105,6 +113,8 @@ io.on("connection", (socket) => {
   });
   socket.on("disconnecting", () => {
     socket.leave(socket.room_code);
+    socket.leave(socket.room_history_likes);
+    socket.leave(socket.room_notify);
   });
   socket.on("disconnect", () => {
     console.log("Client disconnected");
