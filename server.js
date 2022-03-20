@@ -6,7 +6,7 @@ const Notify = require("./models/Notify");
 const Comment = require("./models/Comment");
 const http = require("http");
 
-var app = express();
+const app = require("./app");
 
 const server = http.createServer(app);
 
@@ -33,12 +33,13 @@ mongoose
 const port = process.env.PORT || 8080;
 const io = require("socket.io")(server, {
   cors: {
-    origin: "*",
+    origin: process.env.CLIENT_SOCKET,
   },
 });
 let allUser = [];
 io.on("connection", (socket) => {
   console.log("New client connected " + socket.id);
+  console.log(io.sockets.adapter.rooms);
   socket.on("join-room-history-likes", (userId) => {
     socket.leave(socket.room_history_likes);
     socket.join(userId);
@@ -115,6 +116,7 @@ io.on("connection", (socket) => {
     socket.leave(socket.room_code);
     socket.leave(socket.room_history_likes);
     socket.leave(socket.room_notify);
+    console.log(socket.id + " leave room");
   });
   socket.on("disconnect", () => {
     console.log("Client disconnected");

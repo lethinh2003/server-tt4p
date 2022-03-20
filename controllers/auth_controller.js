@@ -1,4 +1,4 @@
-const User = require("../models/user_model");
+const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
@@ -183,18 +183,19 @@ exports.protect = async (req, res, next) => {
     token = req.headers.authorization.split(" ")[1];
   }
   if (!token) {
-    return invalidValue(res, "Login to get this api 1");
+    return invalidValue(res, "Login to get this api");
   }
   try {
     const decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    console.log(decode);
     const user = await User.findOne({ _id: decode.id });
     if (!user) {
-      return invalidValue(res, "Login to get this api 2");
+      return invalidValue(res, "Login to get this api");
     }
-    const test = await user.changedPassword(decode.iat);
-    if (test) {
-      return invalidValue(res, "Login to get this api 3");
-    }
+    // const test = await user.changedPassword(decode.iat);
+    // if (test) {
+    //   return invalidValue(res, "Login to get this api");
+    // }
     req.user = user;
   } catch (err) {
     return invalidValue(res, err);

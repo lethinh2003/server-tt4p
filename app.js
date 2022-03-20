@@ -9,7 +9,8 @@ const app = express();
 const http = require("http");
 const AppError = require("./utils/app_error");
 const errorController = require("./controllers/error_controller");
-const server = http.createServer(app);
+const userRouters = require("./routers/user_routers");
+
 const cors = require("cors");
 //MIDDLEWARE
 app.use(cors());
@@ -52,6 +53,7 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
   res.status(200).send("404 Not Found");
 });
+app.use("/api/v1/users", userRouters);
 // app.use("/api/v1/search", searchRouters);
 // app.use("/api/v1/musics", musicRouters);
 // app.use("/api/v1/users", userRouters);

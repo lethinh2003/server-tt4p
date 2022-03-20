@@ -26,7 +26,16 @@ const userSchema = new mongoose.Schema({
       },
     },
   },
+  name: {
+    type: String,
+    trim: true,
+    minlength: [2, "Name must lengths greater or equal 2"],
+    required: [true, "Missing name"],
+  },
 
+  avatar: {
+    type: String,
+  },
   role: {
     type: String,
     enum: ["user", "admin"],

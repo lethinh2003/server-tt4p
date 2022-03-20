@@ -1,9 +1,10 @@
-const User = require("../models/user_model");
+const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const AppError = require("../utils/app_error");
 const catchAsync = require("../utils/catch_async");
 const factory = require("./handle_factory");
+const { json } = require("body-parser");
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET_KEY, {
     expiresIn: process.env.JWT_EXPIRES,
@@ -28,7 +29,8 @@ exports.updateUser = catchAsync(async (req, res, next) => {
   const user = await User.findByIdAndUpdate(id, body, {
     new: true,
     runValidators: true,
-  }).select("-password -passwordChangedAt -__v ");
+  }).select("-password -__v ");
+
   if (!user) {
     return next(new AppError("No user updated!", 404));
   }
@@ -84,6 +86,12 @@ exports.createUser = async (req, res) => {
   }
 };
 exports.getUser = factory.getOne(User);
+exports.test = async (req, res) => {
+  return res.status(200).json({
+    status: "success",
+    data: req.user,
+  });
+};
 
 exports.getAllUsers = async (req, res) => {
   try {
