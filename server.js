@@ -4,6 +4,7 @@ var express = require("express");
 const axios = require("axios");
 const Notify = require("./models/Notify");
 const Comment = require("./models/Comment");
+const System = require("./models/System");
 const http = require("http");
 
 const app = require("./app");
@@ -49,7 +50,6 @@ io.on("connection", (socket) => {
     io.sockets.in(userId).emit("send-room-history-likes");
   });
   socket.on("join-notify", (data) => {
-    socket.leave(socket.room_notify);
     socket.join(data);
     socket.room_notify = data;
   });
@@ -87,14 +87,21 @@ io.on("connection", (socket) => {
     }
   });
   socket.on("join-room", (data) => {
-    socket.leave(socket.room_code);
+    console.log(data);
     socket.join(data);
     socket.room_code = data;
   });
   socket.on("get-all-comments", async (codeId) => {
     try {
       const results = await Comment.find({
-        code: codeId,
+        $or: [
+          {
+            code: codeId,
+          },
+          {
+            blog: codeId,
+          },
+        ],
       })
         .populate({
           path: "user",
@@ -111,6 +118,47 @@ io.on("connection", (socket) => {
     } catch (err) {
       console.log(err);
     }
+  });
+  socket.on("join-homepage-express", () => {
+    socket.join("homepage-express");
+  });
+  socket.on("send-event-homepage-express", async (id) => {
+    if (id == 1) {
+      await System.updateMany(
+        {},
+        { $inc: { home_express1: 1 } },
+        {
+          new: true,
+        }
+      );
+    } else if (id == 2) {
+      await System.updateMany(
+        {},
+        { $inc: { home_express2: 1 } },
+        {
+          new: true,
+        }
+      );
+    } else if (id == 3) {
+      await System.updateMany(
+        {},
+        { $inc: { home_express3: 1 } },
+        {
+          new: true,
+        }
+      );
+    } else if (id == 4) {
+      await System.updateMany(
+        {},
+        { $inc: { home_express4: 1 } },
+        {
+          new: true,
+        }
+      );
+    }
+    const data = await System.find({});
+
+    io.sockets.in("homepage-express").emit("send-event-homepage-express", data);
   });
   socket.on("disconnecting", () => {
     socket.leave(socket.room_code);

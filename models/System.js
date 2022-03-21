@@ -71,6 +71,22 @@ const SystemSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  home_express1: {
+    type: Number,
+    default: 0,
+  },
+  home_express2: {
+    type: Number,
+    default: 0,
+  },
+  home_express3: {
+    type: Number,
+    default: 0,
+  },
+  home_express4: {
+    type: Number,
+    default: 0,
+  },
   home_discount: {
     type: Number,
     default: 0,
