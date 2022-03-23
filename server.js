@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 var express = require("express");
 const axios = require("axios");
 const Notify = require("./models/Notify");
+const User = require("./models/User");
 const Comment = require("./models/Comment");
 const System = require("./models/System");
 const http = require("http");
@@ -49,6 +50,27 @@ io.on("connection", (socket) => {
   socket.on("send-room-history-likes", (userId) => {
     io.sockets.in(userId).emit("send-room-history-likes");
   });
+  socket.on("join-profile", (data) => {
+    socket.join(data);
+    socket.room_profile = data;
+  });
+  socket.on("get-avatar-profile", async (data) => {
+    try {
+      const getUser = await User.find({
+        _id: data,
+      });
+      if (getUser.length > 0) {
+        io.sockets.in(data).emit("update-avatar-profile", getUser[0].avatar);
+        console.log("da gui");
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  });
+  socket.on("update-avatar-profile", ({ idRoom, dataImage }) => {
+    io.sockets.in(idRoom).emit("update-avatar-profile", dataImage);
+  });
+
   socket.on("join-notify", (data) => {
     socket.join(data);
     socket.room_notify = data;
@@ -164,7 +186,7 @@ io.on("connection", (socket) => {
     socket.leave(socket.room_code);
     socket.leave(socket.room_history_likes);
     socket.leave(socket.room_notify);
-    console.log(socket.id + " leave room");
+    socket.leave(socket.room_profile);
   });
   socket.on("disconnect", () => {
     console.log("Client disconnected");

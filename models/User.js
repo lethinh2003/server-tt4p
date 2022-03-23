@@ -42,9 +42,8 @@ const userSchema = new mongoose.Schema({
     default: "user",
   },
   status: {
-    type: String,
-    enum: ["active", "banned"],
-    default: "active",
+    type: Boolean,
+    default: true,
   },
   createdAt: {
     type: String,
