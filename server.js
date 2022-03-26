@@ -41,7 +41,6 @@ const io = require("socket.io")(server, {
 let allUser = [];
 io.on("connection", (socket) => {
   console.log("New client connected " + socket.id);
-  console.log(io.sockets.adapter.rooms);
   socket.on("join-room-history-likes", (userId) => {
     socket.leave(socket.room_history_likes);
     socket.join(userId);
@@ -61,7 +60,6 @@ io.on("connection", (socket) => {
       });
       if (getUser.length > 0) {
         io.sockets.in(data).emit("update-avatar-profile", getUser[0].avatar);
-        console.log("da gui");
       }
     } catch (err) {
       console.log(err);
@@ -90,6 +88,7 @@ io.on("connection", (socket) => {
           path: "account_send",
           select: "-__v -password",
         });
+
       io.sockets.in(data).emit("send-notify", findNotifies);
     } catch (err) {
       console.log(err);
@@ -182,14 +181,14 @@ io.on("connection", (socket) => {
 
     io.sockets.in("homepage-express").emit("send-event-homepage-express", data);
   });
-  socket.on("disconnecting", () => {
+  socket.on("disconnecting", () => {});
+  socket.on("disconnect", () => {
+    console.log(io.sockets.adapter.rooms);
     socket.leave(socket.room_code);
     socket.leave(socket.room_history_likes);
     socket.leave(socket.room_notify);
     socket.leave(socket.room_profile);
-  });
-  socket.on("disconnect", () => {
-    console.log("Client disconnected");
+    console.log("Client disconnected", socket.id);
   });
 });
 server.listen(port, () => {
