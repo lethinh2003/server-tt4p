@@ -42,7 +42,6 @@ let allUser = [];
 io.on("connection", (socket) => {
   console.log("New client connected " + socket.id);
   socket.on("join-room-history-likes", (userId) => {
-    socket.leave(socket.room_history_likes);
     socket.join(userId);
     socket.room_history_likes = userId;
   });
@@ -108,7 +107,6 @@ io.on("connection", (socket) => {
     }
   });
   socket.on("join-room", (data) => {
-    console.log(data);
     socket.join(data);
     socket.room_code = data;
   });
@@ -117,10 +115,10 @@ io.on("connection", (socket) => {
       const results = await Comment.find({
         $or: [
           {
-            code: codeId,
+            code: { $in: [codeId] },
           },
           {
-            blog: codeId,
+            blog: { $in: [codeId] },
           },
         ],
       })
@@ -131,6 +129,10 @@ io.on("connection", (socket) => {
         .populate({
           path: "reply",
           select: "-__v -password",
+        })
+        .populate({
+          path: "code",
+          select: "-__v -link",
         })
 
         .sort("-_id")
@@ -188,7 +190,8 @@ io.on("connection", (socket) => {
     socket.leave(socket.room_history_likes);
     socket.leave(socket.room_notify);
     socket.leave(socket.room_profile);
-    console.log("Client disconnected", socket.id);
+    socket.leave("homepage-express");
+    console.log("Client disconnected ", socket.id);
   });
 });
 server.listen(port, () => {

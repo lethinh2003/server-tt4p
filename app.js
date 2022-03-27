@@ -11,11 +11,13 @@ const AppError = require("./utils/app_error");
 const errorController = require("./controllers/error_controller");
 const userRouters = require("./routers/user_routers");
 const notifyRouters = require("./routers/notify_routers");
+const commentRouters = require("./routers/comment_routers");
+const repcommentRouters = require("./routers/repcomment_routers");
 
 const cors = require("cors");
 //MIDDLEWARE
 app.use(cors());
-app.options("*", cors());
+app.options(process.env.CLIENT_SOCKET, cors());
 //security http
 app.use(helmet());
 
@@ -56,6 +58,8 @@ app.get("/", (req, res) => {
 });
 app.use("/api/v1/users", userRouters);
 app.use("/api/v1/notifies", notifyRouters);
+app.use("/api/v1/comments", commentRouters);
+app.use("/api/v1/reply-comments", repcommentRouters);
 // app.use("/api/v1/search", searchRouters);
 // app.use("/api/v1/musics", musicRouters);
 // app.use("/api/v1/users", userRouters);

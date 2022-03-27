@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const RepComment = require("./RepComment");
+const Code = require("./Code");
+const Blog = require("./Blog");
 const commentSchema = new mongoose.Schema(
   {
     user: [
@@ -12,16 +14,22 @@ const commentSchema = new mongoose.Schema(
     reply: [
       {
         type: mongoose.Schema.ObjectId,
-        ref: RepComment,
+        ref: "RepComment",
       },
     ],
 
-    code: {
-      type: String,
-      trim: true,
-      minlength: [6, "Code must lengths greater or equal 6"],
-      required: [true, "Missing code"],
-    },
+    code: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "Code",
+      },
+    ],
+    blog: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "Blog",
+      },
+    ],
     content: {
       type: String,
       trim: true,
@@ -48,6 +56,17 @@ const commentSchema = new mongoose.Schema(
     },
   }
 );
+commentSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "code",
+    select: "-__v -link",
+  });
+  this.populate({
+    path: "blog",
+    select: "-__v",
+  });
+  next();
+});
+const Comment = mongoose.model("Comment", commentSchema);
 
-const Comment = mongoose.models.Comment || mongoose.model("Comment", commentSchema);
 module.exports = Comment;
