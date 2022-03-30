@@ -219,10 +219,11 @@ exports.postComments = catchAsync(async (req, res, next) => {
   });
 });
 exports.getDetailComments = catchAsync(async (req, res, next) => {
-  const id = req.user._id;
   const { sourceId } = req.params;
-
-  const results = await Comment.find({
+  const page = req.query.page * 1 || 1;
+  const results = req.query.results * 1 || 10;
+  const skip = (page - 1) * results;
+  const resultsData = await Comment.find({
     $or: [
       {
         code: { $in: [sourceId] },
@@ -244,12 +245,15 @@ exports.getDetailComments = catchAsync(async (req, res, next) => {
       path: "code",
       select: "-__v -link",
     })
+    .skip(skip)
+    .limit(results)
 
     .sort("-_id")
     .select("-__v");
   return res.status(200).json({
     status: "success",
-    data: results,
+    length: resultsData.length,
+    data: resultsData,
   });
 });
 exports.historyLikeComments = catchAsync(async (req, res, next) => {

@@ -10,6 +10,6 @@ router.route("/like").post(authController.protect, commentController.likeComment
 router.route("/reply").post(authController.protect, commentController.replyComments);
 router.route("/history-like").get(authController.protect, commentController.historyLikeComments);
 router.route("/detail/:sourceId").post(authController.protect, commentController.postComments);
-router.route("/detail/:sourceId").get(authController.protect, commentController.getDetailComments);
+router.route("/detail/:sourceId").get(commentController.getDetailComments);
 
 module.exports = router;

@@ -28,7 +28,6 @@ exports.getNotifies = catchAsync(async (req, res, next) => {
   const page = req.query.page * 1 || 1;
   const results = req.query.results * 1 || 10;
   const skip = (page - 1) * results;
-  console.log(page, results, skip);
 
   const findNotifies = await Notify.find({
     account_receive: { $in: [id] },
