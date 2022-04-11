@@ -12,7 +12,8 @@ const fileUploader = require("../configs/cloudinary.config");
 // router.route("/:id").get(authController.protect, userController.getUser);
 router.route("/upload-avatar").post(authController.protect, fileUploader.single("file"), userController.uploadAvatar);
 router.route("/update").post(authController.protect, userController.updateUser);
-router.route("/test").get(authController.protect, userController.test);
+router.route("/check-user").post(userController.checkUser);
+router.route("/sign-up").post(userController.createUser);
 // router
 //   .route("/:id")
 //   .get(musicController.getMusic)

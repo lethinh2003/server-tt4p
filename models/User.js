@@ -6,25 +6,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     unique: true,
     trim: true,
-    minlength: [6, "Account must lengths greater or equal 6"],
+    minlength: [5, "Account must lengths greater or equal 5"],
     required: [true, "Missing account"],
   },
   password: {
     type: String,
     trim: true,
-    minlength: [6, "Password must lengths greater or equal 6"],
+    minlength: [1, "Password must lengths greater or equal 1"],
     required: [true, "Missing password"],
-  },
-  confirmPassword: {
-    type: String,
-    trim: true,
-    minlength: [6, "Confirm password must lengths greater or equal 6"],
-    required: [true, "Missing confirm password"],
-    validate: {
-      validator: function (el) {
-        return this.password === el;
-      },
-    },
   },
   name: {
     type: String,
@@ -32,9 +21,28 @@ const userSchema = new mongoose.Schema({
     minlength: [2, "Name must lengths greater or equal 2"],
     required: [true, "Missing name"],
   },
+  city: {
+    type: String,
+    required: [true, "Missing city"],
+  },
+  date: {
+    type: Number,
+    min: [1950, "Date is invalid"],
+    max: [new Date().getFullYear(), "Date is invalid"],
+  },
 
   avatar: {
     type: String,
+  },
+  sex: {
+    type: String,
+    enum: ["boy", "girl", "lgbt"],
+    required: [true, "Missing sex"],
+  },
+  findSex: {
+    type: String,
+    enum: ["boy", "girl", "lgbt"],
+    required: [true, "Missing findSex"],
   },
   role: {
     type: String,
@@ -52,7 +60,7 @@ const userSchema = new mongoose.Schema({
 });
 userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, 12);
-  this.confirmPassword = undefined;
+
   next();
 });
 

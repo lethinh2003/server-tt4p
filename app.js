@@ -57,9 +57,9 @@ app.get("/", (req, res) => {
   res.status(200).send("404 Not Found");
 });
 app.use("/api/v1/users", userRouters);
-app.use("/api/v1/notifies", notifyRouters);
-app.use("/api/v1/comments", commentRouters);
-app.use("/api/v1/reply-comments", repcommentRouters);
+// app.use("/api/v1/notifies", notifyRouters);
+// app.use("/api/v1/comments", commentRouters);
+// app.use("/api/v1/reply-comments", repcommentRouters);
 // app.use("/api/v1/search", searchRouters);
 // app.use("/api/v1/musics", musicRouters);
 // app.use("/api/v1/users", userRouters);

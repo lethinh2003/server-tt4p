@@ -40,6 +40,27 @@ exports.updateUser = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.checkUser = async (req, res) => {
+  const { account } = req.body;
+  if (!account) {
+    return res.status(404).json({
+      status: "err",
+      message: "Vui lòng nhập tài khoản",
+    });
+  }
+
+  const user = await User.findOne({ account: account });
+
+  if (user) {
+    return res.status(404).json({
+      status: "err",
+      message: "Tài khoản đã có người sử dụng, vui lòng thử lại",
+    });
+  }
+  return res.status(200).json({
+    status: "success",
+  });
+};
 exports.login = async (req, res) => {
   const { account, password } = req.body;
   if (!account || !password) {
@@ -71,12 +92,18 @@ exports.login = async (req, res) => {
 };
 exports.createUser = async (req, res) => {
   try {
+    const user = await User.findOne({ account: req.body.account });
+    if (user) {
+      return res.status(404).json({
+        status: "err",
+        message: "Tài khoản đã tồn tại, vui lòng thử tài khoản khác",
+      });
+    }
     const newUser = await User.create(req.body);
-    const token = signToken(newUser._id);
+
     res.status(201).json({
       status: "success",
-      token,
-      data: newUser,
+      message: "Đăng ký thành công, chúc bạn vui vẻ!!",
     });
   } catch (err) {
     res.status(400).json({
