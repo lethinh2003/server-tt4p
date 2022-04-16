@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const ChatRoom = require("../models/ChatRoom");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const AppError = require("../utils/app_error");
@@ -61,6 +62,25 @@ exports.checkUser = async (req, res) => {
     status: "success",
   });
 };
+exports.checkUserInRoom = catchAsync(async (req, res, next) => {
+  const { account } = req.body;
+  if (!account) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+  const user = await ChatRoom.findOne({ account: account });
+  if (user) {
+    return next(
+      new AppError(
+        "Có vẻ như bạn đang trong phòng khác, vui lòng đóng phòng hiện tại để tham gia tìm phòng mới nhé",
+        400
+      )
+    );
+  }
+  return res.status(200).json({
+    status: "success",
+    message: "OK",
+  });
+});
 exports.login = async (req, res) => {
   const { account, password } = req.body;
   if (!account || !password) {

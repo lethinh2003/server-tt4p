@@ -6,13 +6,9 @@ const mongoSanitize = require("express-mongo-sanitize");
 const xss = require("xss-clean");
 dotenv.config({ path: "./config.env" });
 const app = express();
-const http = require("http");
 const AppError = require("./utils/app_error");
 const errorController = require("./controllers/error_controller");
 const userRouters = require("./routers/user_routers");
-const notifyRouters = require("./routers/notify_routers");
-const commentRouters = require("./routers/comment_routers");
-const repcommentRouters = require("./routers/repcomment_routers");
 
 const cors = require("cors");
 //MIDDLEWARE
@@ -57,16 +53,7 @@ app.get("/", (req, res) => {
   res.status(200).send("404 Not Found");
 });
 app.use("/api/v1/users", userRouters);
-// app.use("/api/v1/notifies", notifyRouters);
-// app.use("/api/v1/comments", commentRouters);
-// app.use("/api/v1/reply-comments", repcommentRouters);
-// app.use("/api/v1/search", searchRouters);
-// app.use("/api/v1/musics", musicRouters);
-// app.use("/api/v1/users", userRouters);
-// app.use("/api/v1/artists", artistRouters);
-// app.use("/api/v1/genres", genreRouters);
-// app.use("/api/v1/hearts", heartRouters);
-// app.use("/api/v1/playlists", playlistRouters);
+
 app.all("*", (req, res, next) => {
   next(new AppError(`No found ${req.originalUrl}`, 404));
 });

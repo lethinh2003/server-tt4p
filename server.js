@@ -1,11 +1,8 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-var express = require("express");
-const axios = require("axios");
-const Notify = require("./models/Notify");
-const User = require("./models/User");
-const Comment = require("./models/Comment");
-const System = require("./models/System");
+
+const ChatRoom = require("./models/ChatRoom");
+
 const http = require("http");
 
 const app = require("./app");
@@ -38,160 +35,172 @@ const io = require("socket.io")(server, {
     origin: process.env.CLIENT_SOCKET,
   },
 });
-let allUser = [];
+const { joinListUsers, findPartner, removeUser } = require("./room");
 io.on("connection", (socket) => {
   console.log("New client connected " + socket.id);
-  socket.on("join-room-history-likes", (userId) => {
-    socket.join(userId);
-    socket.room_history_likes = userId;
+  socket.on("check-user-in-room", (user) => {
+    const checkUser = joinListUsers(user);
+    if (checkUser === false) {
+      removeUser(user);
+    }
   });
-  socket.on("send-room-history-likes", (userId) => {
-    io.sockets.in(userId).emit("send-room-history-likes");
-  });
-  socket.on("join-profile", (data) => {
-    socket.join(data);
-    socket.room_profile = data;
-  });
-  socket.on("get-avatar-profile", async (data) => {
-    try {
-      const getUser = await User.find({
-        _id: data,
+
+  socket.on("join-list-users", async (user) => {
+    const data = joinListUsers(user);
+
+    if (data) {
+      socket.chatAPPUser = data;
+      //Join room by user account
+      socket.join(user.account);
+      await ChatRoom.create({
+        account: socket.chatAPPUser.account,
+        type: "waiting",
       });
-      if (getUser.length > 0) {
-        io.sockets.in(data).emit("update-avatar-profile", getUser[0].avatar);
-      }
-    } catch (err) {
-      console.log(err);
+      console.log("ROOM:", io.sockets.adapter.rooms);
     }
   });
-  socket.on("update-avatar-profile", ({ idRoom, dataImage }) => {
-    io.sockets.in(idRoom).emit("update-avatar-profile", dataImage);
+  socket.on("out-chat-room", async (partner) => {
+    await ChatRoom.deleteOne({
+      account: partner.account,
+      type: "chatting",
+    });
+    await ChatRoom.deleteOne({
+      account: socket.chatAPPUser.account,
+      type: "chatting",
+    });
+    removeUser(partner);
+    removeUser(socket.chatAPPUser);
+    const currentRoom1 = `${partner.account}-${socket.chatAPPUser.account}`;
+    const currentRoom2 = `${socket.chatAPPUser.account}-${partner.account}`;
+    socket.leave(currentRoom1);
+    socket.leave(currentRoom2);
+    io.sockets.in(currentRoom1).emit("out-chat-room-for-partner", socket.chatAPPUser);
+    io.sockets.in(currentRoom2).emit("out-chat-room-for-partner", socket.chatAPPUser);
+    io.sockets
+      .in(currentRoom1)
+      .emit("send-noti-disconnected-for-partner", "Đối phương đã rời phòng chat, phòng của bạn sẽ đóng cửa!!");
+    io.sockets
+      .in(currentRoom2)
+      .emit("send-noti-disconnected-for-partner", "Đối phương đã rời phòng chat, phòng của bạn sẽ đóng cửa!!");
+  });
+  socket.on("out-waiting-room", async () => {
+    console.log(socket.chatAPPUser);
+    await ChatRoom.deleteOne({
+      account: socket.chatAPPUser.account,
+      type: "waiting",
+    });
+    removeUser(socket.chatAPPUser);
+    socket.leave(socket.chatAPPUser.account);
+    console.log("ROOM:", io.sockets.adapter.rooms);
+  });
+  socket.on("join-room-for-partner", (partner) => {
+    socket.join(`${partner.account}-${socket.chatAPPUser.account}`);
+    socket.chatAPPUserPartner = partner;
+    console.log("ROOM:", io.sockets.adapter.rooms);
+  });
+  socket.on("find-partner", async (currentUser) => {
+    const data = findPartner(currentUser);
+    console.log(data);
+
+    //send message find partner for current user
+    io.sockets.in(currentUser.account).emit("find-partner", data);
+    //find partner success
+    if (data.status === "success") {
+      console.log("data", data);
+      await ChatRoom.deleteOne({
+        account: socket.chatAPPUser.account,
+        type: "waiting",
+      });
+      await ChatRoom.deleteOne({
+        account: data.partner.account,
+        type: "waiting",
+      });
+      await ChatRoom.create({
+        account: data.partner.account,
+        type: "chatting",
+      });
+      await ChatRoom.create({
+        account: socket.chatAPPUser.account,
+        type: "chatting",
+      });
+      socket.chatAPPUserPartner = data.partner;
+      socket.join(`${socket.chatAPPUser.account}-${data.partner.account}`);
+
+      //send request join room for partner
+      io.sockets.in(data.partner.account).emit("join-room-for-partner", data);
+      //send info current user for partner
+      io.sockets.in(data.partner.account).emit("find-partner-success", data);
+      //send info partner for current user
+      io.sockets.in(data.user.account).emit("find-partner-success", data);
+    }
+  });
+  socket.on("receive-disconnected-for-partner", (data) => {
+    const { currentRoom1, currentRoom2 } = data;
+    socket.leave(currentRoom1);
+    socket.leave(currentRoom2);
+    console.log("ROOM:", io.sockets.adapter.rooms);
+  });
+  socket.on("send-chat-content", (message) => {
+    const newMessage = {
+      account: socket.chatAPPUser.account,
+      name: socket.chatAPPUser.name,
+      message: message,
+      sex: socket.chatAPPUser.sex,
+    };
+    const currentRoom1 = `${socket.chatAPPUserPartner.account}-${socket.chatAPPUser.account}`;
+    const currentRoom2 = `${socket.chatAPPUser.account}-${socket.chatAPPUserPartner.account}`;
+    io.sockets.to(currentRoom1).emit("receive-chat-content", newMessage);
+    io.sockets.in(currentRoom2).emit("receive-chat-content", newMessage);
+  });
+  socket.on("chat-typing", (data) => {
+    const currentRoom1 = `${socket.chatAPPUserPartner.account}-${socket.chatAPPUser.account}`;
+    const currentRoom2 = `${socket.chatAPPUser.account}-${socket.chatAPPUserPartner.account}`;
+    if (data === true) {
+      const mes = { status: true, message: "Đối phương đang nhập ..." };
+      //Send room1 or room2, except sender
+      socket.to(currentRoom1).emit("chat-typing", mes);
+      socket.to(currentRoom2).emit("chat-typing", mes);
+    } else {
+      const mes = { status: false, message: "Đối phương đã huỷ nhập" };
+      //Send room1 or room2, except sender
+      socket.to(currentRoom1).emit("chat-typing", mes);
+      socket.to(currentRoom2).emit("chat-typing", mes);
+    }
   });
 
-  socket.on("join-notify", (data) => {
-    socket.join(data);
-    socket.room_notify = data;
-  });
-  socket.on("get-notify", async (data) => {
-    try {
-      const findNotifies = await Notify.find({
-        account_receive: { $in: [data] },
-      })
-        .sort("-_id")
-        .select("-__v")
-        .populate({
-          path: "account_receive",
-          select: "-__v -password",
-        })
-        .populate({
-          path: "account_send",
-          select: "-__v -password",
-        });
+  socket.on("disconnecting", async () => {
+    if (socket.chatAPPUser) {
+      await ChatRoom.deleteOne({
+        account: socket.chatAPPUser.account,
+      });
+    }
+    if (socket.chatAPPUserPartner && socket.chatAPPUser) {
+      await ChatRoom.deleteOne({
+        account: socket.chatAPPUserPartner.account,
+      });
+      io.sockets
+        .in(socket.chatAPPUserPartner.account)
+        .emit("send-noti-disconnected-for-partner", "Đối phương đã tắt kết nối, phòng của bạn sẽ đóng cửa!!");
+      removeUser(socket.chatAPPUserPartner);
+      removeUser(socket.chatAPPUser);
 
-      io.sockets.in(data).emit("send-notify", findNotifies);
-    } catch (err) {
-      console.log(err);
-    }
-  });
-  socket.on("read-notify", async (data) => {
-    try {
-      await Notify.updateMany(
-        {
-          account_receive: { $in: [data] },
-        },
-        { status: true }
-      );
-      io.sockets.in(data).emit("read-notify");
-    } catch (err) {
-      console.log(err);
-    }
-  });
-  socket.on("join-room", (data) => {
-    socket.join(data);
-    socket.room_code = data;
-  });
-  socket.on("get-all-comments", async (codeId) => {
-    try {
-      const results = await Comment.find({
-        $or: [
-          {
-            code: { $in: [codeId] },
-          },
-          {
-            blog: { $in: [codeId] },
-          },
-        ],
-      })
-        .populate({
-          path: "user",
-          select: "-__v -password",
-        })
-        .populate({
-          path: "reply",
-          select: "-__v -password",
-        })
-        .populate({
-          path: "code",
-          select: "-__v -link",
-        })
+      const currentRoom1 = `${socket.chatAPPUserPartner.account}-${socket.chatAPPUser.account}`;
+      const currentRoom2 = `${socket.chatAPPUser.account}-${socket.chatAPPUserPartner.account}`;
+      io.sockets
+        .in(socket.chatAPPUserPartner.account)
+        .emit("send-disconnected-for-partner", { currentRoom1, currentRoom2 });
 
-        .sort("-_id")
-        .select("-__v");
-      io.sockets.in(codeId).emit("send-all-comments", results);
-    } catch (err) {
-      console.log(err);
-    }
-  });
-  socket.on("join-homepage-express", () => {
-    socket.join("homepage-express");
-  });
-  socket.on("send-event-homepage-express", async (id) => {
-    if (id == 1) {
-      await System.updateMany(
-        {},
-        { $inc: { home_express1: 1 } },
-        {
-          new: true,
-        }
-      );
-    } else if (id == 2) {
-      await System.updateMany(
-        {},
-        { $inc: { home_express2: 1 } },
-        {
-          new: true,
-        }
-      );
-    } else if (id == 3) {
-      await System.updateMany(
-        {},
-        { $inc: { home_express3: 1 } },
-        {
-          new: true,
-        }
-      );
-    } else if (id == 4) {
-      await System.updateMany(
-        {},
-        { $inc: { home_express4: 1 } },
-        {
-          new: true,
-        }
-      );
-    }
-    const data = await System.find({});
+      io.sockets.in(currentRoom1).emit("disconnected-for-partner");
+      io.sockets.in(currentRoom2).emit("disconnected-for-partner");
+      console.log("ROOM:", io.sockets.adapter.rooms);
 
-    io.sockets.in("homepage-express").emit("send-event-homepage-express", data);
+      socket.chatAPPUserPartner = null;
+      socket.chatAPPUser = null;
+    }
   });
-  socket.on("disconnecting", () => {});
   socket.on("disconnect", () => {
-    console.log(io.sockets.adapter.rooms);
-    socket.leave(socket.room_code);
-    socket.leave(socket.room_history_likes);
-    socket.leave(socket.room_notify);
-    socket.leave(socket.room_profile);
-    socket.leave("homepage-express");
     console.log("Client disconnected ", socket.id);
+    console.log("ROOM:", io.sockets.adapter.rooms);
   });
 });
 server.listen(port, () => {
