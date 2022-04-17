@@ -47,6 +47,7 @@ io.on("connection", (socket) => {
 
   socket.on("join-list-users", async (user) => {
     const data = joinListUsers(user);
+    console.log(data);
 
     if (data) {
       socket.chatAPPUser = data;
@@ -82,9 +83,9 @@ io.on("connection", (socket) => {
     io.sockets
       .in(currentRoom2)
       .emit("send-noti-disconnected-for-partner", "Đối phương đã rời phòng chat, phòng của bạn sẽ đóng cửa!!");
+    socket.chatAPPUserPartner = null;
   });
   socket.on("out-waiting-room", async () => {
-    console.log(socket.chatAPPUser);
     await ChatRoom.deleteOne({
       account: socket.chatAPPUser.account,
       type: "waiting",
@@ -100,6 +101,8 @@ io.on("connection", (socket) => {
   });
   socket.on("find-partner", async (currentUser) => {
     const data = findPartner(currentUser);
+    console.log("ROOM:", io.sockets.adapter.rooms);
+
     console.log(data);
 
     //send message find partner for current user
@@ -169,10 +172,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnecting", async () => {
+    console.log("disconenting", socket.chatAPPUser);
+
     if (socket.chatAPPUser) {
       await ChatRoom.deleteOne({
         account: socket.chatAPPUser.account,
       });
+      removeUser(socket.chatAPPUser);
     }
     if (socket.chatAPPUserPartner && socket.chatAPPUser) {
       await ChatRoom.deleteOne({
@@ -182,7 +188,6 @@ io.on("connection", (socket) => {
         .in(socket.chatAPPUserPartner.account)
         .emit("send-noti-disconnected-for-partner", "Đối phương đã tắt kết nối, phòng của bạn sẽ đóng cửa!!");
       removeUser(socket.chatAPPUserPartner);
-      removeUser(socket.chatAPPUser);
 
       const currentRoom1 = `${socket.chatAPPUserPartner.account}-${socket.chatAPPUser.account}`;
       const currentRoom2 = `${socket.chatAPPUser.account}-${socket.chatAPPUserPartner.account}`;

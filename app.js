@@ -17,11 +17,6 @@ app.options(process.env.CLIENT_SOCKET, cors());
 //security http
 app.use(helmet());
 
-//development logging
-// if (process.env.NODE_ENV === "development") {
-//   app.use(morgan("dev"));
-// }
-
 //limit request
 const limiter = rateLimit({
   max: 100,

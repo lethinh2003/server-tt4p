@@ -6,6 +6,7 @@ const listUsersLGBT = [];
 
 const joinListUsers = (user) => {
   const findUser = findListUsers(user.account);
+
   if (findUser.length > 0) {
     return false;
   } else {
