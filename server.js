@@ -35,9 +35,10 @@ const io = require("socket.io")(server, {
     origin: process.env.CLIENT_SOCKET,
   },
 });
-const { joinListUsers, findPartner, removeUser } = require("./room");
+const { joinListUsers, findPartner, removeUser, getUsersWaiting } = require("./room");
 io.on("connection", (socket) => {
   console.log("New client connected " + socket.id);
+
   socket.on("check-user-in-room", (user) => {
     const checkUser = joinListUsers(user);
     if (checkUser === false) {
@@ -50,6 +51,8 @@ io.on("connection", (socket) => {
     console.log(data);
 
     if (data) {
+      const getListUsersWaiting = getUsersWaiting();
+      socket.emit("update-user-waiting", getListUsersWaiting);
       socket.chatAPPUser = data;
       //Join room by user account
       socket.join(user.account);

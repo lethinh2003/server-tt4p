@@ -3,7 +3,13 @@ const listUsersRoom = [];
 const listUsersBoy = [];
 const listUsersGirl = [];
 const listUsersLGBT = [];
-
+const getUsersWaiting = () => {
+  return {
+    boy: listUsersBoy.length,
+    girl: listUsersGirl.length,
+    lgbt: listUsersLGBT.length,
+  };
+};
 const joinListUsers = (user) => {
   const findUser = findListUsers(user.account);
 
@@ -31,20 +37,16 @@ const randomUser = (currentUser) => {
   //Check user in chat room
   if (!checkIsInRoom(currentUser.account)) {
     if (currentUser.findSex === "boy") {
-      //Empty list user boy
-      if (listUsersBoy.length === 0) {
-        return { status: "fail", message: "Hiện tại chưa có bạn nào tham gia vào, vui lòng thử lại sau nhé" };
-      }
-      //List user boy but has only current user into
-      if (listUsersBoy.length === 1 && listUsersBoy[0].account === currentUser.account) {
+      const newData = listUsersBoy.filter(
+        (item) => item.account !== currentUser.account && item.findSex === currentUser.sex
+      );
+      if (newData.length === 0) {
         return { status: "fail", message: "Hiện tại chưa có bạn nào tham gia vào, vui lòng thử lại sau nhé" };
       }
       //Random user boy in list user boy
-      const random = listUsersBoy[Math.floor(Math.random() * listUsersBoy.length)];
+      const random = newData[Math.floor(Math.random() * newData.length)];
       //Check if (current user === random user && random user in chat room) then invoke randomUser function
-      if (random.account === currentUser.account && checkIsInRoom(random.account)) {
-        return randomUser(currentUser);
-      } else {
+      if (!checkIsInRoom(random.account)) {
         console.log("Đã tìm thấy bạn tâm sự mới: ", random);
         //Update info partner for current user and random user
         let currentUserUpdate = { ...currentUser, partner: random.account };
@@ -75,22 +77,20 @@ const randomUser = (currentUser) => {
           user: currentUser,
           partner: random,
         };
+      } else {
+        return randomUser(currentUser);
       }
     } else if (currentUser.findSex === "girl") {
-      //Empty list user girl
-      if (listUsersGirl.length === 0) {
+      const newData = listUsersGirl.filter(
+        (item) => item.account !== currentUser.account && item.findSex === currentUser.sex
+      );
+      if (newData.length === 0) {
         return { status: "fail", message: "Hiện tại chưa có bạn nào tham gia vào, vui lòng thử lại sau nhé" };
       }
-      //List user girl but has only current user into
-      if (listUsersGirl.length === 1 && listUsersGirl[0].account === currentUser.account) {
-        return { status: "fail", message: "Hiện tại chưa có bạn nào tham gia vào, vui lòng thử lại sau nhé" };
-      }
-      //Random user girl in list user girl
-      const random = listUsersGirl[Math.floor(Math.random() * listUsersGirl.length)];
+      //Random user boy in list user boy
+      const random = newData[Math.floor(Math.random() * newData.length)];
       //Check if (current user === random user && random user in chat room) then invoke randomUser function
-      if (random.account === currentUser.account && checkIsInRoom(random.account)) {
-        return randomUser(currentUser);
-      } else {
+      if (!checkIsInRoom(random.account)) {
         console.log("Đã tìm thấy bạn tâm sự mới: ", random);
         //Update info partner for current user and random user
         let currentUserUpdate = { ...currentUser, partner: random.account };
@@ -121,22 +121,19 @@ const randomUser = (currentUser) => {
           user: currentUser,
           partner: random,
         };
+      } else {
+        return randomUser(currentUser);
       }
     } else if (currentUser.findSex === "lgbt") {
-      //Empty list user lgbt
-      if (listUsersLGBT.length === 0) {
+      const newData = listUsersLGBT.filter(
+        (item) => item.account !== currentUser.account && item.findSex === currentUser.sex
+      );
+      if (newData.length === 0) {
         return { status: "fail", message: "Hiện tại chưa có bạn nào tham gia vào, vui lòng thử lại sau nhé" };
       }
-      //List user lgbt but has only current user into
-      if (listUsersLGBT.length === 1 && listUsersLGBT[0].account === currentUser.account) {
-        return { status: "fail", message: "Hiện tại chưa có bạn nào tham gia vào, vui lòng thử lại sau nhé" };
-      }
-      //Random user lgbt in list user girl
-      const random = listUsersLGBT[Math.floor(Math.random() * listUsersLGBT.length)];
-      //Check if (current user === random user && random user in chat room) then invoke randomUser function
-      if (random.account === currentUser.account && checkIsInRoom(random.account)) {
-        return randomUser(currentUser);
-      } else {
+      //Random user
+      const random = newData[Math.floor(Math.random() * newData.length)];
+      if (!checkIsInRoom(random.account)) {
         console.log("Đã tìm thấy bạn tâm sự mới: ", random);
         //Update info partner for current user and random user
         let currentUserUpdate = { ...currentUser, partner: random.account };
@@ -167,6 +164,8 @@ const randomUser = (currentUser) => {
           user: currentUser,
           partner: random,
         };
+      } else {
+        return randomUser(currentUser);
       }
     }
   } else {
@@ -236,4 +235,5 @@ module.exports = {
   joinListUsers,
   findListUsers,
   findPartner,
+  getUsersWaiting,
 };
