@@ -102,43 +102,44 @@ io.on("connection", (socket) => {
     socket.chatAPPUserPartner = partner;
     console.log("ROOM:", io.sockets.adapter.rooms);
   });
-  socket.on("find-partner", async (currentUser) => {
-    const data = findPartner(currentUser);
-    console.log("ROOM:", io.sockets.adapter.rooms);
+  socket.on("find-partner", (currentUser) => {
+    setTimeout(async () => {
+      const data = findPartner(currentUser);
+      console.log("ROOM:", io.sockets.adapter.rooms);
+      console.log(data);
 
-    console.log(data);
+      //send message find partner for current user
+      io.sockets.in(currentUser.account).emit("find-partner", data);
+      //find partner success
+      if (data.status === "success") {
+        console.log("data", data);
+        await ChatRoom.deleteOne({
+          account: socket.chatAPPUser.account,
+          type: "waiting",
+        });
+        await ChatRoom.deleteOne({
+          account: data.partner.account,
+          type: "waiting",
+        });
+        await ChatRoom.create({
+          account: data.partner.account,
+          type: "chatting",
+        });
+        await ChatRoom.create({
+          account: socket.chatAPPUser.account,
+          type: "chatting",
+        });
+        socket.chatAPPUserPartner = data.partner;
+        socket.join(`${socket.chatAPPUser.account}-${data.partner.account}`);
 
-    //send message find partner for current user
-    io.sockets.in(currentUser.account).emit("find-partner", data);
-    //find partner success
-    if (data.status === "success") {
-      console.log("data", data);
-      await ChatRoom.deleteOne({
-        account: socket.chatAPPUser.account,
-        type: "waiting",
-      });
-      await ChatRoom.deleteOne({
-        account: data.partner.account,
-        type: "waiting",
-      });
-      await ChatRoom.create({
-        account: data.partner.account,
-        type: "chatting",
-      });
-      await ChatRoom.create({
-        account: socket.chatAPPUser.account,
-        type: "chatting",
-      });
-      socket.chatAPPUserPartner = data.partner;
-      socket.join(`${socket.chatAPPUser.account}-${data.partner.account}`);
-
-      //send request join room for partner
-      io.sockets.in(data.partner.account).emit("join-room-for-partner", data);
-      //send info current user for partner
-      io.sockets.in(data.partner.account).emit("find-partner-success", data);
-      //send info partner for current user
-      io.sockets.in(data.user.account).emit("find-partner-success", data);
-    }
+        //send request join room for partner
+        io.sockets.in(data.partner.account).emit("join-room-for-partner", data);
+        //send info current user for partner
+        io.sockets.in(data.partner.account).emit("find-partner-success", data);
+        //send info partner for current user
+        io.sockets.in(data.user.account).emit("find-partner-success", data);
+      }
+    }, 2000);
   });
   socket.on("receive-disconnected-for-partner", (data) => {
     const { currentRoom1, currentRoom2 } = data;
@@ -157,6 +158,8 @@ io.on("connection", (socket) => {
     const currentRoom2 = `${socket.chatAPPUser.account}-${socket.chatAPPUserPartner.account}`;
     io.sockets.to(currentRoom1).emit("receive-chat-content", newMessage);
     io.sockets.in(currentRoom2).emit("receive-chat-content", newMessage);
+    //send sound notify
+    io.sockets.in(socket.chatAPPUserPartner.account).emit("receive-chat-sound");
   });
   socket.on("chat-typing", (data) => {
     const currentRoom1 = `${socket.chatAPPUserPartner.account}-${socket.chatAPPUser.account}`;
