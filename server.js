@@ -38,21 +38,24 @@ const io = require("socket.io")(server, {
 const { joinListUsers, findPartner, removeUser, getUsersWaiting } = require("./room");
 io.on("connection", (socket) => {
   console.log("New client connected " + socket.id);
-
+  const getUsersWaitingData = getUsersWaiting();
+  io.emit("update-users-waiting-room", getUsersWaitingData);
   socket.on("check-user-in-room", (user) => {
     const checkUser = joinListUsers(user);
     if (checkUser === false) {
       removeUser(user);
     }
+    const getUsersWaitingData = getUsersWaiting();
+    io.emit("update-users-waiting-room", getUsersWaitingData);
   });
 
   socket.on("join-list-users", async (user) => {
     const data = joinListUsers(user);
     console.log(data);
+    const getUsersWaitingData = getUsersWaiting();
+    io.emit("update-users-waiting-room", getUsersWaitingData);
 
     if (data) {
-      const getListUsersWaiting = getUsersWaiting();
-      socket.emit("update-user-waiting", getListUsersWaiting);
       socket.chatAPPUser = data;
       //Join room by user account
       socket.join(user.account);
@@ -61,6 +64,8 @@ io.on("connection", (socket) => {
         type: "waiting",
       });
       console.log("ROOM:", io.sockets.adapter.rooms);
+      const getUsersWaitingData = getUsersWaiting();
+      io.emit("update-users-waiting-room", getUsersWaitingData);
     }
   });
   socket.on("out-chat-room", async (partner) => {
@@ -87,6 +92,8 @@ io.on("connection", (socket) => {
       .in(currentRoom2)
       .emit("send-noti-disconnected-for-partner", "Đối phương đã rời phòng chat, phòng của bạn sẽ đóng cửa!!");
     socket.chatAPPUserPartner = null;
+    const getUsersWaitingData = getUsersWaiting();
+    io.emit("update-users-waiting-room", getUsersWaitingData);
   });
   socket.on("out-waiting-room", async () => {
     await ChatRoom.deleteOne({
@@ -96,6 +103,8 @@ io.on("connection", (socket) => {
     removeUser(socket.chatAPPUser);
     socket.leave(socket.chatAPPUser.account);
     console.log("ROOM:", io.sockets.adapter.rooms);
+    const getUsersWaitingData = getUsersWaiting();
+    io.emit("update-users-waiting-room", getUsersWaitingData);
   });
   socket.on("join-room-for-partner", (partner) => {
     socket.join(`${partner.account}-${socket.chatAPPUser.account}`);

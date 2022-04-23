@@ -70,15 +70,48 @@ exports.checkUserInRoom = catchAsync(async (req, res, next) => {
   const user = await ChatRoom.findOne({ account: account });
   if (user) {
     return next(
-      new AppError(
-        "Có vẻ như bạn đang trong phòng khác, vui lòng đóng phòng hiện tại để tham gia tìm phòng mới nhé",
-        400
-      )
+      new AppError("Có vẻ như bạn đang trong phòng khác, vui lòng đóng phòng hiện tại để thực hiện chức năng này", 400)
     );
   }
   return res.status(200).json({
     status: "success",
     message: "OK",
+  });
+});
+exports.getDetailUser = catchAsync(async (req, res, next) => {
+  const { account } = req.body;
+  if (!account) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+  if (req.user.account !== account) {
+    return next(new AppError("Có lỗi xảy ra khi lấy thông tin tài khoản", 404));
+  }
+  const user = await User.findOne({ account: account }).select("-password -__v");
+  return res.status(200).json({
+    status: "success",
+    data: user,
+  });
+});
+exports.updateDetailUser = catchAsync(async (req, res, next) => {
+  const { name, sex, findSex, city } = req.body;
+  const sexBelongTo = ["boy", "girl", "lgbt"];
+
+  if (name.length < 2 || !sexBelongTo.includes(sex) || !sexBelongTo.includes(findSex)) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+
+  const user = await User.findOneAndUpdate(
+    { account: req.user.account },
+    {
+      name: name,
+      sex: sex,
+      findSex: findSex,
+      city: city,
+    }
+  );
+  return res.status(200).json({
+    status: "success",
+    data: user,
   });
 });
 exports.login = async (req, res) => {
