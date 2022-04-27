@@ -93,26 +93,39 @@ exports.getDetailUser = catchAsync(async (req, res, next) => {
   });
 });
 exports.updateDetailUser = catchAsync(async (req, res, next) => {
-  const { name, sex, findSex, city } = req.body;
-  const sexBelongTo = ["boy", "girl", "lgbt"];
+  const { name, sex, findSex, city, hideInfo } = req.body;
+  if (name && sex && findSex && city) {
+    const sexBelongTo = ["boy", "girl", "lgbt"];
 
-  if (name.length < 2 || !sexBelongTo.includes(sex) || !sexBelongTo.includes(findSex)) {
-    return next(new AppError("Vui lòng nhập thông tin", 404));
-  }
-
-  const user = await User.findOneAndUpdate(
-    { account: req.user.account },
-    {
-      name: name,
-      sex: sex,
-      findSex: findSex,
-      city: city,
+    if (name.length < 2 || !sexBelongTo.includes(sex) || !sexBelongTo.includes(findSex)) {
+      return next(new AppError("Vui lòng nhập thông tin", 404));
     }
-  );
-  return res.status(200).json({
-    status: "success",
-    data: user,
-  });
+
+    const user = await User.findOneAndUpdate(
+      { account: req.user.account },
+      {
+        name: name,
+        sex: sex,
+        findSex: findSex,
+        city: city,
+      }
+    );
+    return res.status(200).json({
+      status: "success",
+      data: "success",
+    });
+  } else if (hideInfo) {
+    const user = await User.findOneAndUpdate(
+      { account: req.user.account },
+      {
+        hideInfo: JSON.parse(hideInfo),
+      }
+    );
+    return res.status(200).json({
+      status: "success",
+      data: "success",
+    });
+  }
 });
 exports.login = async (req, res) => {
   const { account, password } = req.body;

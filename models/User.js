@@ -53,6 +53,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  hideInfo: {
+    type: Boolean,
+    default: true,
+  },
   createdAt: {
     type: String,
     default: () => new Date().toISOString(),

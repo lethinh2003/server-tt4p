@@ -111,6 +111,13 @@ io.on("connection", (socket) => {
     socket.chatAPPUserPartner = partner;
     console.log("ROOM:", io.sockets.adapter.rooms);
   });
+  socket.on("request-info-partner", (partner) => {
+    io.sockets.in(partner.account).emit("request-info-partner");
+  });
+  socket.on("notify-request-info-partner", (data) => {
+    console.log(socket.chatAPPUserPartner.account);
+    io.sockets.in(socket.chatAPPUserPartner.account).emit("notify-request-info-partner", data);
+  });
   socket.on("find-partner", (currentUser) => {
     setTimeout(async () => {
       const data = findPartner(currentUser);
