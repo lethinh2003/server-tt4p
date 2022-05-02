@@ -9,7 +9,7 @@ const app = express();
 const AppError = require("./utils/app_error");
 const errorController = require("./controllers/error_controller");
 const userRouters = require("./routers/user_routers");
-
+const systemRouters = require("./routers/system_routers");
 const cors = require("cors");
 //MIDDLEWARE
 app.use(cors());
@@ -48,6 +48,7 @@ app.get("/", (req, res) => {
   res.status(200).send("404 Not Found");
 });
 app.use("/api/v1/users", userRouters);
+app.use("/api/v1/systems", systemRouters);
 
 app.all("*", (req, res, next) => {
   next(new AppError(`No found ${req.originalUrl}`, 404));

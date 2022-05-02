@@ -53,6 +53,9 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  banned_reason: {
+    type: String,
+  },
   hideInfo: {
     type: Boolean,
     default: true,

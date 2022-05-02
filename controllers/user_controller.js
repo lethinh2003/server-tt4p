@@ -93,11 +93,11 @@ exports.getDetailUser = catchAsync(async (req, res, next) => {
   });
 });
 exports.updateDetailUser = catchAsync(async (req, res, next) => {
-  const { name, sex, findSex, city, hideInfo } = req.body;
-  if (name && sex && findSex && city) {
+  const { name, findSex, city, hideInfo } = req.body;
+  if (name && findSex && city) {
     const sexBelongTo = ["boy", "girl", "lgbt"];
 
-    if (name.length < 2 || !sexBelongTo.includes(sex) || !sexBelongTo.includes(findSex)) {
+    if (name.length < 2 || !sexBelongTo.includes(findSex)) {
       return next(new AppError("Vui lòng nhập thông tin", 404));
     }
 
@@ -105,7 +105,7 @@ exports.updateDetailUser = catchAsync(async (req, res, next) => {
       { account: req.user.account },
       {
         name: name,
-        sex: sex,
+
         findSex: findSex,
         city: city,
       }
@@ -126,6 +126,19 @@ exports.updateDetailUser = catchAsync(async (req, res, next) => {
       data: "success",
     });
   }
+});
+exports.updateUserAdmin = catchAsync(async (req, res, next) => {
+  const { status, account } = req.body;
+  const user = await User.findOneAndUpdate(
+    { account: account },
+    {
+      status: status,
+    }
+  );
+  return res.status(200).json({
+    status: "success",
+    data: "success",
+  });
 });
 exports.login = async (req, res) => {
   const { account, password } = req.body;
@@ -208,7 +221,7 @@ exports.getAllUsers = async (req, res) => {
       const fields = req.query.fields.split(",").join(" ");
       query = query.select(fields);
     } else {
-      query = query.select("-__v -artists._id -genres._id -info._id");
+      query = query.select("-__v -password");
       // - tien to de k muon hien ra screen
     }
     //pagination

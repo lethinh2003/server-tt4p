@@ -48,7 +48,10 @@ io.on("connection", (socket) => {
     const getUsersWaitingData = getUsersWaiting();
     io.emit("update-users-waiting-room", getUsersWaitingData);
   });
-
+  socket.on("join-room-unique-account", (account) => {
+    socket.join(`${account}-room`);
+    console.log("ROOM:", io.sockets.adapter.rooms);
+  });
   socket.on("join-list-users", async (user) => {
     const data = joinListUsers(user);
     console.log(data);
@@ -192,6 +195,10 @@ io.on("connection", (socket) => {
       socket.to(currentRoom2).emit("chat-typing", mes);
     }
   });
+  socket.on("banned-account", ({ account, status }) => {
+    console.log("send room banned account");
+    io.to(`${account}-room`).emit("banned-account", status);
+  });
 
   socket.on("disconnecting", async () => {
     console.log("disconenting", socket.chatAPPUser);
@@ -201,6 +208,8 @@ io.on("connection", (socket) => {
         account: socket.chatAPPUser.account,
       });
       removeUser(socket.chatAPPUser);
+      const getUsersWaitingData = getUsersWaiting();
+      io.emit("update-users-waiting-room", getUsersWaitingData);
     }
     if (socket.chatAPPUserPartner && socket.chatAPPUser) {
       await ChatRoom.deleteOne({
@@ -210,6 +219,8 @@ io.on("connection", (socket) => {
         .in(socket.chatAPPUserPartner.account)
         .emit("send-noti-disconnected-for-partner", "Đối phương đã tắt kết nối, phòng của bạn sẽ đóng cửa!!");
       removeUser(socket.chatAPPUserPartner);
+      const getUsersWaitingData = getUsersWaiting();
+      io.emit("update-users-waiting-room", getUsersWaitingData);
 
       const currentRoom1 = `${socket.chatAPPUserPartner.account}-${socket.chatAPPUser.account}`;
       const currentRoom2 = `${socket.chatAPPUser.account}-${socket.chatAPPUserPartner.account}`;
