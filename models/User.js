@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const validator = require("validator");
+const crypto = require("crypto");
 
 const userSchema = new mongoose.Schema({
   account: {
@@ -24,6 +26,17 @@ const userSchema = new mongoose.Schema({
   city: {
     type: String,
     required: [true, "Missing city"],
+  },
+  email: {
+    type: String,
+    unique: true,
+    required: [true, "Missing email"],
+    trim: true,
+    validate: [validator.isEmail, "Email is invalid"],
+  },
+
+  bio: {
+    type: String,
   },
   date: {
     type: Number,
@@ -53,6 +66,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  active_email: {
+    type: Boolean,
+    default: false,
+  },
   banned_reason: {
     type: String,
   },
@@ -64,12 +81,21 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: () => new Date().toISOString(),
   },
+  emailActiveToken: String,
+  emailActiveTokenExpires: Date,
 });
 userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, 12);
 
   next();
 });
+
+userSchema.methods.createActiveEmailToken = async function (num) {
+  const token = await crypto.randomBytes(num).toString("hex");
+  this.emailActiveToken = await crypto.createHash("sha256").update(token).digest("hex");
+  this.emailActiveTokenExpires = Date.now() + 10 * 60 * 1000;
+  return token;
+};
 
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 module.exports = User;

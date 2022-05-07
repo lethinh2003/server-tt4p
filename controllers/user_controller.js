@@ -5,6 +5,10 @@ const bcrypt = require("bcryptjs");
 const AppError = require("../utils/app_error");
 const catchAsync = require("../utils/catch_async");
 const factory = require("./handle_factory");
+const validator = require("validator");
+const sendEmail = require("../utils/email");
+const crypto = require("crypto");
+
 const { json } = require("body-parser");
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET_KEY, {
@@ -41,27 +45,24 @@ exports.updateUser = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.checkUser = async (req, res) => {
-  const { account } = req.body;
-  if (!account) {
-    return res.status(404).json({
-      status: "err",
-      message: "Vui lòng nhập tài khoản",
-    });
+exports.checkUser = catchAsync(async (req, res, next) => {
+  const { account, email } = req.body;
+  if (!account || !email) {
+    return next(new AppError("Vui lòng nhập tài khoản hoặc email", 404));
+  }
+  if (!validator.isEmail(email)) {
+    return next(new AppError("Vui lòng nhập email hợp lệ", 404));
   }
 
-  const user = await User.findOne({ account: account });
+  const user = await User.findOne({ $or: [{ account: account }, { email: email }] });
 
   if (user) {
-    return res.status(404).json({
-      status: "err",
-      message: "Tài khoản đã có người sử dụng, vui lòng thử lại",
-    });
+    return next(new AppError("Tài khoản hoặc email đã có người sử dụng, vui lòng thử lại", 404));
   }
   return res.status(200).json({
     status: "success",
   });
-};
+});
 exports.checkUserInRoom = catchAsync(async (req, res, next) => {
   const { account } = req.body;
   if (!account) {
@@ -92,8 +93,34 @@ exports.getDetailUser = catchAsync(async (req, res, next) => {
     data: user,
   });
 });
+exports.checkActiveEmail = catchAsync(async (req, res, next) => {
+  const { token } = req.params;
+  const checkToken = await crypto.createHash("sha256").update(token).digest("hex");
+  const user = await User.findOne({
+    emailActiveToken: checkToken,
+    emailActiveTokenExpires: { $gt: Date.now() },
+  });
+  if (!user) {
+    return next(new AppError("Token expired or does not exist !", 400));
+  }
+  await User.findOneAndUpdate(
+    {
+      emailActiveToken: checkToken,
+    },
+    {
+      active_email: true,
+      emailActiveToken: undefined,
+      emailActiveTokenExpires: undefined,
+    }
+  );
+
+  return res.status(200).json({
+    status: "success",
+    message: "Kích hoạt thành công",
+  });
+});
 exports.updateDetailUser = catchAsync(async (req, res, next) => {
-  const { name, findSex, city, hideInfo } = req.body;
+  const { name, findSex, city, hideInfo, bio } = req.body;
   if (name && findSex && city) {
     const sexBelongTo = ["boy", "girl", "lgbt"];
 
@@ -105,6 +132,7 @@ exports.updateDetailUser = catchAsync(async (req, res, next) => {
       { account: req.user.account },
       {
         name: name,
+        bio: bio,
 
         findSex: findSex,
         city: city,
@@ -126,6 +154,33 @@ exports.updateDetailUser = catchAsync(async (req, res, next) => {
       data: "success",
     });
   }
+});
+exports.activeEmail = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+  if (!validator.isEmail(email)) {
+    return next(new AppError("Vui lòng nhập email hợp lệ", 404));
+  }
+  if (req.user.active_email) {
+    return next(new AppError("Bạn đã kích hoạt email rồi!", 404));
+  }
+  const user = await User.findOne({ email: email, account: req.user.account });
+  if (!user) {
+    return next(new AppError("Vui lòng nhập email hợp lệ", 404));
+  }
+  const emailActiveToken = await user.createActiveEmailToken(30);
+  await user.save({ validateBeforeSave: false });
+  const activeURL = `${req.get("origin")}/active-email/${emailActiveToken}`;
+  const message = `Kích hoạt tài khoản tại đây: ${activeURL} \n`;
+  console.log(activeURL);
+  await sendEmail({
+    email: email,
+    subject: "Kích hoạt tài khoản trò chuyện 4 phương (valid for 10 min)",
+    message,
+  });
+  return res.status(200).json({
+    status: "success",
+    message: "Thành công. Vui lòng check hộp thư để nhận mail kích hoạt!",
+  });
 });
 exports.updateUserAdmin = catchAsync(async (req, res, next) => {
   const { status, account } = req.body;

@@ -37,6 +37,7 @@ const sendEmail = async (options) => {
     // html:
   };
 
-  await transport.sendMail(mailOptions);
+  const test = await transport.sendMail(mailOptions);
+  console.log(test);
 };
 module.exports = sendEmail;
