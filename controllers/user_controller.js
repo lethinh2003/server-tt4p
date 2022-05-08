@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const System = require("../models/System");
 const ChatRoom = require("../models/ChatRoom");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -119,6 +120,63 @@ exports.checkActiveEmail = catchAsync(async (req, res, next) => {
     message: "Kích hoạt thành công",
   });
 });
+exports.checkTokenResetPassword = catchAsync(async (req, res, next) => {
+  const { token } = req.params;
+  const checkToken = await crypto.createHash("sha256").update(token).digest("hex");
+  const user = await User.findOne({
+    resetPasswordToken: checkToken,
+    resetPasswordTokenExpires: { $gt: Date.now() },
+  });
+  if (!user) {
+    return next(new AppError("Token expired or does not exist !", 400));
+  }
+  // await User.findOneAndUpdate(
+  //   {
+  //     resetPasswordToken: checkToken,
+  //   },
+  //   {
+  //     resetPasswordToken: undefined,
+  //     resetPasswordTokenExpires: undefined,
+  //   }
+  // );
+
+  return res.status(200).json({
+    status: "success",
+    data: {
+      account: user.account,
+      updatedPasswordAt: user.updatedPasswordAt,
+    },
+  });
+});
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  const { token } = req.params;
+  const { password } = req.body;
+  const checkToken = await crypto.createHash("sha256").update(token).digest("hex");
+  const user = await User.findOne({
+    resetPasswordToken: checkToken,
+    resetPasswordTokenExpires: { $gt: Date.now() },
+  });
+  if (!user) {
+    return next(new AppError("Token expired or does not exist !", 400));
+  }
+  const newPassword = await bcrypt.hash(password, 12);
+  await User.findOneAndUpdate(
+    {
+      account: user.account,
+    },
+    {
+      password: newPassword,
+      updatedPasswordAt: Date.now(),
+      resetPasswordToken: undefined,
+      resetPasswordTokenExpires: undefined,
+    }
+  );
+
+  return res.status(200).json({
+    status: "success",
+    message: "Thay đổi password thành công",
+  });
+});
 exports.updateDetailUser = catchAsync(async (req, res, next) => {
   const { name, findSex, city, hideInfo, bio } = req.body;
   if (name && findSex && city) {
@@ -169,17 +227,68 @@ exports.activeEmail = catchAsync(async (req, res, next) => {
   }
   const emailActiveToken = await user.createActiveEmailToken(30);
   await user.save({ validateBeforeSave: false });
+  const getSystem = await System.findOne({});
+
   const activeURL = `${req.get("origin")}/active-email/${emailActiveToken}`;
-  const message = `Kích hoạt tài khoản tại đây: ${activeURL} \n`;
-  console.log(activeURL);
+
+  const message = `
+  <b>Kích Hoạt Tài Khoản</b>
+  <br>Xin chào ${user.name}, lời đầu tiên chúng tôi xin cảm ơn bạn đã tham gia vào cộng đồng của chúng tôi!
+  <br><b>Trò chuyện bốn phương</b> là ứng dụng web mà chúng tôi gây dựng nên để giúp các bạn tìm bạn tâm sự. Cuộc sống này đôi khi quá áp lực, đừng stress, hãy lên <b>Trò chuyện bốn phương</b> để tìm người tâm sự ngay. Chúng tôi cam kết bạn sẽ bớt phần nào stress cuộc sống khi tham gia chat với người lạ!
+  <br>Để kích hoạt tài khoản, vui lòng <a href="${activeURL}" target="_blank">click vào đây</a>.
+  <br><b>Thông Tin Liên Hệ</b>
+  <br>
+  Author: ${getSystem.author}
+  <br>
+  Email: ${getSystem.email ? getSystem.email : "lethinh.developer@gmail.com"}
+  
+  
+  `;
+
   await sendEmail({
     email: email,
     subject: "Kích hoạt tài khoản trò chuyện 4 phương (valid for 10 min)",
-    message,
+    message: message,
   });
   return res.status(200).json({
     status: "success",
     message: "Thành công. Vui lòng check hộp thư để nhận mail kích hoạt!",
+  });
+});
+exports.missingPassword = catchAsync(async (req, res, next) => {
+  const { info_account } = req.body;
+  const user = await User.findOne({ $or: [{ email: info_account }, { account: info_account }] });
+  if (!user) {
+    return next(new AppError("Tài khoản hoặc email không tồn tại", 404));
+  }
+  const resetPasswordToken = await user.createResetPasswordToken(30);
+  await user.save({ validateBeforeSave: false });
+  const getSystem = await System.findOne({});
+
+  const activeURL = `${req.get("origin")}/reset-password/${resetPasswordToken}`;
+
+  const message = `
+  <b>Khôi Phục Mật Khẩu Tài Khoản</b>
+  <br>Xin chào ${user.name}, lời đầu tiên chúng tôi xin cảm ơn bạn đã tham gia vào cộng đồng của chúng tôi!
+  <br><b>Trò chuyện bốn phương</b> là ứng dụng web mà chúng tôi gây dựng nên để giúp các bạn tìm bạn tâm sự. Cuộc sống này đôi khi quá áp lực, đừng stress, hãy lên <b>Trò chuyện bốn phương</b> để tìm người tâm sự ngay. Chúng tôi cam kết bạn sẽ bớt phần nào stress cuộc sống khi tham gia chat với người lạ!
+  <br>Để khôi phục mật khẩu tài khoản, vui lòng <a href="${activeURL}" target="_blank">click vào đây</a>.
+  <br><b>Thông Tin Liên Hệ</b>
+  <br>
+  Author: ${getSystem.author}
+  <br>
+  Email: ${getSystem.email ? getSystem.email : "lethinh.developer@gmail.com"}
+  
+  
+  `;
+
+  await sendEmail({
+    email: user.email,
+    subject: "Khôi phục mật khẩu tài khoản trò chuyện 4 phương (valid for 10 min)",
+    message: message,
+  });
+  return res.status(200).json({
+    status: "success",
+    message: "Thành công. Vui lòng check hộp thư để nhận mail khôi phục mật khẩu!",
   });
 });
 exports.updateUserAdmin = catchAsync(async (req, res, next) => {

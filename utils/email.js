@@ -34,7 +34,7 @@ const sendEmail = async (options) => {
     to: options.email,
     subject: options.subject,
     text: options.message,
-    // html:
+    html: options.message,
   };
 
   const test = await transport.sendMail(mailOptions);
