@@ -9,6 +9,9 @@ const app = express();
 const AppError = require("./utils/app_error");
 const errorController = require("./controllers/error_controller");
 const userRouters = require("./routers/user_routers");
+const postRouters = require("./routers/post_routers");
+const heartRouters = require("./routers/heart_routers");
+
 const systemRouters = require("./routers/system_routers");
 const cors = require("cors");
 //MIDDLEWARE
@@ -19,7 +22,7 @@ app.use(helmet());
 
 //limit request
 const limiter = rateLimit({
-  max: 100,
+  max: 1000,
   window: 60 * 60 * 1000,
   message: "Too many requests from this ip, please try again 1 hour later",
 });
@@ -48,6 +51,8 @@ app.get("/", (req, res) => {
   res.status(200).send("404 Not Found");
 });
 app.use("/api/v1/users", userRouters);
+app.use("/api/v1/posts", postRouters);
+app.use("/api/v1/hearts", heartRouters);
 app.use("/api/v1/systems", systemRouters);
 
 app.all("*", (req, res, next) => {

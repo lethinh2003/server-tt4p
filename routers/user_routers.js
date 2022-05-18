@@ -19,6 +19,7 @@ router.route("/update").post(authController.protect, userController.updateDetail
 router.route("/reset-password/:token").get(userController.checkTokenResetPassword);
 router.route("/reset-password/:token").post(userController.resetPassword);
 router.route("/missing-password").post(userController.missingPassword);
+router.route("/suggestion-friends").get(authController.protect, userController.suggestionFriends);
 router.route("/active-email/:token").get(userController.checkActiveEmail);
 router.route("/active-email").post(authController.protect, userController.activeEmail);
 router.route("/check-user").post(userController.checkUser);
