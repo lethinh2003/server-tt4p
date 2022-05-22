@@ -35,7 +35,7 @@ app.use(express.json());
 app.use(mongoSanitize());
 
 //against XSS (HTML, JS)
-app.use(xss());
+// app.use(xss());
 
 //serving static file
 app.use(express.static(`${__dirname}/public`));

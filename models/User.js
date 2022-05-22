@@ -81,6 +81,18 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: () => new Date().toISOString(),
   },
+  followers: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
+    },
+  ],
+  following: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
+    },
+  ],
   emailActiveToken: String,
   emailActiveTokenExpires: Date,
   resetPasswordToken: String,

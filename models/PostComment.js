@@ -18,6 +18,19 @@ const postCommentSchema = new mongoose.Schema({
       required: [true, "Missing user"],
     },
   ],
+  likes: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
+    },
+  ],
+  dislikes: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "User",
+    },
+  ],
+
   content: {
     type: String,
     trim: true,
