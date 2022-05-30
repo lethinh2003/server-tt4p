@@ -3,12 +3,12 @@ const bcrypt = require("bcrypt");
 const validator = require("validator");
 const crypto = require("crypto");
 
-const postCommentSchema = new mongoose.Schema({
-  post: [
+const postRepCommentSchema = new mongoose.Schema({
+  comment: [
     {
       type: mongoose.Schema.ObjectId,
-      ref: "Post",
-      required: [true, "Missing post"],
+      ref: "PostComment",
+      required: [true, "Missing post comment"],
     },
   ],
   user: [
@@ -30,12 +30,6 @@ const postCommentSchema = new mongoose.Schema({
       ref: "User",
     },
   ],
-  rep_comments: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: "PostRepComment",
-    },
-  ],
 
   content: {
     type: String,
@@ -49,5 +43,5 @@ const postCommentSchema = new mongoose.Schema({
   },
 });
 
-const PostComment = mongoose.models.PostComment || mongoose.model("PostComment", postCommentSchema);
-module.exports = PostComment;
+const PostRepComment = mongoose.models.PostRepComment || mongoose.model("PostRepComment", postRepCommentSchema);
+module.exports = PostRepComment;

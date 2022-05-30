@@ -29,10 +29,12 @@ const joinListUsers = (user) => {
     return user;
   }
 };
+
 const findListUsers = (user) => {
   const result = listUsers.filter((u) => user === u.account);
   return result;
 };
+
 const randomUser = (currentUser) => {
   //Check user in chat room
   if (!checkIsInRoom(currentUser.account)) {
@@ -177,6 +179,7 @@ const randomUser = (currentUser) => {
     };
   }
 };
+
 const findPartner = (currentUser) => {
   //Check user in list user
   const findUser = findListUsers(currentUser.account);
@@ -233,7 +236,6 @@ const checkIsInRoom = (account) => {
 module.exports = {
   removeUser,
   joinListUsers,
-  findListUsers,
   findPartner,
   getUsersWaiting,
 };

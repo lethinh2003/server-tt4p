@@ -23,6 +23,7 @@ const postSchema = new mongoose.Schema({
       ref: "PostHeart",
     },
   ],
+
   hearts_count: {
     type: Number,
     default: 0,
@@ -77,6 +78,11 @@ postSchema.pre("save", async function (next) {
     lower: true,
   });
   this.slug = year + "/" + month + "/" + day + "/" + this.slug;
+
+  next();
+});
+postSchema.pre("update", async function (next) {
+  console.log("heheh");
 
   next();
 });

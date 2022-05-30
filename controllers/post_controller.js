@@ -1,6 +1,7 @@
 const Post = require("../models/Post");
 const PostActivity = require("../models/PostActivity");
 const PostComment = require("../models/PostComment");
+const PostRepComment = require("../models/PostRepComment");
 const PostHeart = require("../models/PostHeart");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
@@ -111,151 +112,6 @@ exports.getDetailPostActivity = catchAsync(async (req, res, next) => {
     data: getPostActivity,
   });
 });
-exports.getDetailPostComments = catchAsync(async (req, res, next) => {
-  const { postId } = req.params;
-  const page = req.query.page * 1 || 1;
-  const results = req.query.results * 1 || 10;
-  const skip = (page - 1) * results;
-  if (!postId) {
-    return next(new AppError("Vui lòng nhập post ID", 404));
-  }
-  let sortType = "_id";
-  if (req.query.sort === "latest") {
-    sortType = "-createdAt";
-    const getPostComments = await PostComment.find({
-      post: { $in: [postId] },
-    })
-      .skip(skip)
-      .limit(results)
-      .sort(sortType)
-      .populate({
-        path: "post",
-        select: "-__v",
-      })
-      .populate({
-        path: "user",
-        select:
-          "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-      });
-
-    return res.status(200).json({
-      status: "success",
-      data: getPostComments,
-    });
-  } else if (req.query.sort === "popular") {
-    sortType = "-likes";
-    const getPostComments = await PostComment.find({
-      post: { $in: [postId] },
-    })
-      .skip(skip)
-      .limit(results)
-      .sort(sortType)
-      .populate({
-        path: "post",
-        select: "-__v",
-      })
-      .populate({
-        path: "user",
-        select:
-          "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-      });
-
-    return res.status(200).json({
-      status: "success",
-      data: getPostComments,
-    });
-  }
-});
-exports.CreatePostComment = catchAsync(async (req, res, next) => {
-  const { postId } = req.params;
-  const { userId, content } = req.body;
-  if (!userId || userId !== req.user.id || !postId || !content) {
-    return next(new AppError("Please fill in all fields", 404));
-  }
-  await PostComment.create({
-    user: [req.user._id],
-    post: [postId],
-
-    content: content,
-  });
-
-  return res.status(200).json({
-    status: "success",
-    message: "Create Success",
-  });
-});
-exports.CreateLikePostComment = catchAsync(async (req, res, next) => {
-  const { commentId } = req.params;
-  const { userId } = req.body;
-  if (!userId || userId !== req.user.id || !commentId) {
-    return next(new AppError("Please fill in all fields", 404));
-  }
-  const check_user_liked_comment = await PostComment.find({ _id: commentId, likes: { $in: [userId] } });
-  if (check_user_liked_comment.length > 0) {
-    await PostComment.findOneAndUpdate(
-      {
-        _id: commentId,
-      },
-      {
-        $pull: { likes: userId },
-      }
-    );
-    return res.status(200).json({
-      status: "success",
-      message: "delete_success",
-    });
-  } else {
-    await PostComment.findOneAndUpdate(
-      {
-        _id: commentId,
-      },
-      {
-        $push: { likes: userId },
-      }
-    );
-
-    return res.status(200).json({
-      status: "success",
-      message: "create_success",
-    });
-  }
-});
-exports.CreateDislikePostComment = catchAsync(async (req, res, next) => {
-  const { commentId } = req.params;
-  const { userId } = req.body;
-  if (!userId || userId !== req.user.id || !commentId) {
-    return next(new AppError("Please fill in all fields", 404));
-  }
-  const check_user_disliked_comment = await PostComment.find({ _id: commentId, dislikes: { $in: [userId] } });
-  if (check_user_disliked_comment.length > 0) {
-    await PostComment.findOneAndUpdate(
-      {
-        _id: commentId,
-      },
-      {
-        $pull: { dislikes: userId },
-      }
-    );
-    return res.status(200).json({
-      status: "success",
-      message: "delete_success",
-    });
-  } else {
-    await PostComment.findOneAndUpdate(
-      {
-        _id: commentId,
-      },
-      {
-        $push: { dislikes: userId },
-      }
-    );
-
-    return res.status(200).json({
-      status: "success",
-      message: "create_success",
-    });
-  }
-});
 exports.deleteDetailPostActivity = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   const { postId } = req.body;
@@ -273,65 +129,109 @@ exports.deleteDetailPostActivity = catchAsync(async (req, res, next) => {
   });
 });
 exports.getAllPosts = catchAsync(async (req, res, next) => {
+  const pageSize = req.query.pageSize * 1 || 5;
+  const postId = req.query.postId;
   const page = req.query.page * 1 || 1;
-  const results = req.query.results * 1 || 10;
+  const results = req.query.results * 1 || 5;
   const skip = (page - 1) * results;
   let sortType = "_id";
-  if (req.query.sort !== "following") {
-    if (req.query.sort === "all") {
-      sortType = "_id";
-    } else if (req.query.sort === "latest") {
-      sortType = "-createdAt";
-    } else if (req.query.sort === "popular") {
-      sortType = "-hearts_count";
-    }
-
+  let posts;
+  if (req.query.sort === "all") {
+    sortType = "_id";
+  } else if (req.query.sort === "latest") {
+    sortType = "-createdAt";
+  } else if (req.query.sort === "popular") {
+    sortType = { hearts_count: -1, _id: -1 };
+  }
+  if (req.query.sort !== "following" && req.query.sort !== "popular") {
     let post_hearts = 0;
     let post_comments = 0;
 
-    const posts = await Post.find({})
-      .skip(skip)
-      .limit(results)
-      .sort(sortType)
-      .select("-__v")
-      .populate({
-        path: "user",
-        select:
-          "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-      })
-      .populate({
-        path: "hearts",
-        select: "-__v",
-      });
-
+    if (postId) {
+      if (req.query.sort === "all") {
+        posts = await Post.find({ _id: { $gt: postId } })
+          .limit(pageSize)
+          .sort(sortType)
+          .select("-__v")
+          .populate({
+            path: "user",
+            select: "account createdAt followers following name sex",
+          })
+          .populate({
+            path: "hearts",
+            select: "-__v",
+          });
+      } else if (req.query.sort === "latest") {
+        posts = await Post.find({ _id: { $lt: postId } })
+          .limit(pageSize)
+          .sort(sortType)
+          .select("-__v")
+          .populate({
+            path: "user",
+            select: "account createdAt followers following name sex",
+          })
+          .populate({
+            path: "hearts",
+            select: "-__v",
+          });
+      }
+    } else {
+      posts = await Post.find({})
+        .limit(pageSize)
+        .sort(sortType)
+        .select("-__v")
+        .populate({
+          path: "user",
+          select: "account createdAt followers following name sex",
+        })
+        .populate({
+          path: "hearts",
+          select: "-__v",
+        });
+    }
     return res.status(200).json({
       status: "success",
-      result: posts.length,
+      results: posts.length,
       page: page,
+      pageSize: pageSize,
 
       data: posts,
     });
   } else {
-    const posts = await Post.find({ user: { $in: req.user.following } })
-      .skip(skip)
-      .limit(results)
-      .sort("-createdAt")
-      .select("-__v")
-      .populate({
-        path: "user",
-        select:
-          "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-      })
-      .populate({
-        path: "hearts",
-        select: "-__v",
-      });
-
+    if (req.query.sort === "popular") {
+      posts = await Post.find({})
+        .skip(skip)
+        .limit(pageSize)
+        .sort(sortType)
+        .select("-__v")
+        .populate({
+          path: "user",
+          select: "account createdAt followers following name sex",
+        })
+        .populate({
+          path: "hearts",
+          select: "-__v",
+        });
+    } else if (req.query.sort === "following") {
+      posts = await Post.find({ user: { $in: req.user.following } })
+        .skip(skip)
+        .limit(results)
+        .sort("-createdAt")
+        .select("-__v")
+        .populate({
+          path: "user",
+          select: "account createdAt followers following name sex",
+        })
+        .populate({
+          path: "hearts",
+          select: "-__v",
+        });
+    }
     return res.status(200).json({
       status: "success",
-      result: posts.length,
+      results: posts.length,
       page: page,
-
+      pageSize: pageSize,
       data: posts,
     });
   }
