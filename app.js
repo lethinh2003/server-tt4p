@@ -13,6 +13,7 @@ const postRouters = require("./routers/post_routers");
 const heartRouters = require("./routers/heart_routers");
 
 const systemRouters = require("./routers/system_routers");
+const chatRoomRouters = require("./routers/chatRoom_routers");
 const cors = require("cors");
 //MIDDLEWARE
 app.use(cors());
@@ -54,6 +55,7 @@ app.use("/api/v1/users", userRouters);
 app.use("/api/v1/posts", postRouters);
 app.use("/api/v1/hearts", heartRouters);
 app.use("/api/v1/systems", systemRouters);
+app.use("/api/v1/chat-rooms", chatRoomRouters);
 
 app.all("*", (req, res, next) => {
   next(new AppError(`No found ${req.originalUrl}`, 404));

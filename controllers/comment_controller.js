@@ -23,32 +23,13 @@ exports.getDetailPostComments = catchAsync(async (req, res, next) => {
   }
   let sortType = "_id";
   if (req.query.sort === "latest") {
-    sortType = "-createdAt";
+    sortType = "createdAt";
     const getPostComments = await PostComment.find({
       post: { $in: [postId] },
     })
       .skip(skip)
       .limit(results)
-      .sort(sortType)
-      .populate({
-        path: "post",
-        select: "-__v",
-      })
-      .populate({
-        path: "rep_comments",
-        select: "-__v",
-        populate: {
-          path: "user",
-          model: "User",
-          select:
-            "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-        },
-      })
-      .populate({
-        path: "user",
-        select:
-          "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-      });
+      .sort(sortType);
 
     return res.status(200).json({
       status: "success",
@@ -75,12 +56,22 @@ exports.getDetailPostComments = catchAsync(async (req, res, next) => {
           model: "User",
           select:
             "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
+          populate: {
+            path: "avatarSVG",
+            model: "AvatarUser",
+            select: "-user",
+          },
         },
       })
       .populate({
         path: "user",
         select:
           "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
+        populate: {
+          path: "avatarSVG",
+          model: "AvatarUser",
+          select: "-user",
+        },
       });
 
     return res.status(200).json({

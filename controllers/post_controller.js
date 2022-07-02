@@ -69,6 +69,11 @@ exports.getDetailPostBySlug = catchAsync(async (req, res, next) => {
       path: "user",
       select:
         "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
+      populate: {
+        path: "avatarSVG",
+        model: "AvatarUser",
+        select: "-user",
+      },
     })
     .populate({
       path: "hearts",
@@ -112,6 +117,17 @@ exports.getDetailPostActivity = catchAsync(async (req, res, next) => {
     data: getPostActivity,
   });
 });
+exports.getDetailPostHearts = catchAsync(async (req, res, next) => {
+  const { postID } = req.params;
+  const getPost = await Post.findOne({
+    _id: postID,
+  });
+
+  return res.status(200).json({
+    status: "success",
+    data: getPost ? getPost.hearts.length : 0,
+  });
+});
 exports.deleteDetailPostActivity = catchAsync(async (req, res, next) => {
   const { userId } = req.params;
   const { postId } = req.body;
@@ -133,7 +149,7 @@ exports.getAllPosts = catchAsync(async (req, res, next) => {
   const postId = req.query.postId;
   const page = req.query.page * 1 || 1;
   const results = req.query.results * 1 || 5;
-  const skip = (page - 1) * results;
+  const skip = (page - 1) * pageSize;
   let sortType = "_id";
   let posts;
   if (req.query.sort === "all") {
@@ -155,7 +171,12 @@ exports.getAllPosts = catchAsync(async (req, res, next) => {
           .select("-__v")
           .populate({
             path: "user",
-            select: "account createdAt followers following name sex",
+            select: "-password",
+            populate: {
+              path: "avatarSVG",
+              model: "AvatarUser",
+              select: "-user",
+            },
           })
           .populate({
             path: "hearts",
@@ -168,7 +189,12 @@ exports.getAllPosts = catchAsync(async (req, res, next) => {
           .select("-__v")
           .populate({
             path: "user",
-            select: "account createdAt followers following name sex",
+            select: "-password",
+            populate: {
+              path: "avatarSVG",
+              model: "AvatarUser",
+              select: "-user",
+            },
           })
           .populate({
             path: "hearts",
@@ -182,7 +208,12 @@ exports.getAllPosts = catchAsync(async (req, res, next) => {
         .select("-__v")
         .populate({
           path: "user",
-          select: "account createdAt followers following name sex",
+          select: "-password",
+          populate: {
+            path: "avatarSVG",
+            model: "AvatarUser",
+            select: "-user",
+          },
         })
         .populate({
           path: "hearts",
@@ -206,7 +237,12 @@ exports.getAllPosts = catchAsync(async (req, res, next) => {
         .select("-__v")
         .populate({
           path: "user",
-          select: "account createdAt followers following name sex",
+          select: "-password",
+          populate: {
+            path: "avatarSVG",
+            model: "AvatarUser",
+            select: "-user",
+          },
         })
         .populate({
           path: "hearts",
@@ -215,12 +251,17 @@ exports.getAllPosts = catchAsync(async (req, res, next) => {
     } else if (req.query.sort === "following") {
       posts = await Post.find({ user: { $in: req.user.following } })
         .skip(skip)
-        .limit(results)
+        .limit(pageSize)
         .sort("-createdAt")
         .select("-__v")
         .populate({
           path: "user",
-          select: "account createdAt followers following name sex",
+          select: "-password",
+          populate: {
+            path: "avatarSVG",
+            model: "AvatarUser",
+            select: "-user",
+          },
         })
         .populate({
           path: "hearts",

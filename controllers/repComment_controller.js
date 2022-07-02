@@ -15,19 +15,26 @@ exports.uploadFile = catchAsync(async (req, res, next) => {
 
 exports.CreateRepPostComment = catchAsync(async (req, res, next) => {
   const { commentId } = req.params;
-  const { userId, content } = req.body;
+  const { userId, content, postId } = req.body;
   if (!userId || userId !== req.user.id || !commentId || !content) {
     return next(new AppError("Please fill in all fields", 404));
   }
 
-  const createRepComment = await PostRepComment.create({
+  const createRepComment = await PostComment.create({
     user: [req.user._id],
-    comment: [commentId],
+    post: [postId],
     content: content,
+    parent_comment: commentId,
   });
-  await PostComment.findByIdAndUpdate(commentId, {
-    $push: { rep_comments: createRepComment._id },
-  });
+  await PostComment.findOneAndUpdate(
+    {
+      _id: commentId,
+    },
+    {
+      $push: { rep_comments: createRepComment._id },
+    }
+  );
+
   return res.status(200).json({
     status: "success",
     message: "Create Success",

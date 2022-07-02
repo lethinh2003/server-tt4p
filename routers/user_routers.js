@@ -20,15 +20,16 @@ router.route("/follows").post(authController.protect, userController.followsUser
 router.route("/reset-password/:token").get(userController.checkTokenResetPassword);
 router.route("/reset-password/:token").post(userController.resetPassword);
 router.route("/missing-password").post(userController.missingPassword);
-router.route("/suggestion-friends").get(authController.protect, userController.suggestionFriends);
+router.route("/suggestion-friends/:userID").get(authController.protect, userController.suggestionFriends);
 router.route("/active-email/:token").get(userController.checkActiveEmail);
 router.route("/active-email").post(authController.protect, userController.activeEmail);
 router.route("/check-user").post(userController.checkUser);
 router.route("/check-in-room").post(authController.protect, userController.checkUserInRoom);
+router.route("/check-user-pending-in-room").post(authController.protect, userController.checkUserPendingInRoom);
+router.route("/check-partner-pending-in-room").post(authController.protect, userController.checkPartnerPendingInRoom);
+router.route("/restore-user-pending-in-room").get(authController.protect, userController.restoreUserPendingInRoom);
 router.route("/sign-up").post(userController.createUser);
-// router
-//   .route("/:id")
-//   .get(musicController.getMusic)
-//   .patch(musicController.updateMusic)
-//   .delete(musicController.deleteMusic);
+router.route("/update-all").get(userController.updateAll);
+router.route("/create-avatar").get(userController.createAvatar);
+
 module.exports = router;

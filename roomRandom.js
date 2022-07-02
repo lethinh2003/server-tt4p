@@ -1,85 +1,95 @@
-const listUsersRandom = [];
-const listUsersRoomRandom = [];
-const listUsersBoyRandom = [];
-const listUsersGirlRandom = [];
-const listUsersLGBTRandom = [];
+const listUsersRandomWaiting = [];
+const listUsersRandomInRoomChatting = [];
+const listUsersBoyRandomWaiting = [];
+const listUsersGirlRandomWaiting = [];
+const listUsersLGBTRandomWaiting = [];
 const getUsersWaitingRandom = () => {
   return {
-    boy: listUsersBoyRandom.length,
-    girl: listUsersGirlRandom.length,
-    lgbt: listUsersLGBTRandom.length,
+    boy: listUsersBoyRandomWaiting.length,
+    girl: listUsersGirlRandomWaiting.length,
+    lgbt: listUsersLGBTRandomWaiting.length,
   };
+};
+const joinListUsersChatting = (user) => {
+  if (checkIsInRoomChatting(user.account) === false) {
+    console.log("KHÔI PHỤC: JOIN USER VÀO CHATTING ROOM ", user.account);
+    listUsersRandomInRoomChatting.push(user);
+    console.log("CHATTING ROOM ", listUsersRandomInRoomChatting);
+  }
 };
 const joinListUsersRandom = (user) => {
   const findUser = findListUsers(user.account);
-
   if (findUser.length > 0) {
     return false;
   } else {
     //Push current user into list
-    listUsersRandom.push(user);
+    listUsersRandomWaiting.push(user);
     if (user.sex === "boy") {
-      listUsersBoyRandom.push(user);
+      listUsersBoyRandomWaiting.push(user);
     } else if (user.sex === "girl") {
-      listUsersGirlRandom.push(user);
+      listUsersGirlRandomWaiting.push(user);
     } else if (user.sex === "lgbt") {
-      listUsersLGBTRandom.push(user);
+      listUsersLGBTRandomWaiting.push(user);
     }
+    console.log(listUsersRandomWaiting);
 
     return user;
   }
 };
 const findListUsers = (user) => {
-  const result = listUsersRandom.filter((u) => user === u.account);
+  const result = listUsersRandomWaiting.filter((u) => user === u.account);
   return result;
 };
 
 const randomUserRandom = (currentUser) => {
-  //Check user in chat room
-  if (checkIsInRoom(currentUser.account) === false) {
-    //list users in room (except current user)
-    const listUsersInRoom = listUsersRandom.filter((item) => item.account !== currentUser.account);
-    if (listUsersInRoom.length === 0) {
+  //Ensure that user aren't chatting in room.
+  if (checkIsInRoomChatting(currentUser.account) === false) {
+    //list users in waiting room (except current user)
+    console.log("--------------------");
+    console.log("listUsersRandomWaiting", listUsersRandomWaiting);
+    console.log("--------------------");
+    const listUsersInWaitingRoom = listUsersRandomWaiting.filter((user) => user.account !== currentUser.account);
+    if (listUsersInWaitingRoom.length === 0) {
       return { status: "fail", message: "Hiện tại chưa có bạn nào tham gia vào, vui lòng thử lại sau nhé" };
     }
-    //Random user in list users
-    const random = listUsersInRoom[Math.floor(Math.random() * listUsersInRoom.length)];
+    //Random user in list users waiting
+    const random = listUsersInWaitingRoom[Math.floor(Math.random() * listUsersInWaitingRoom.length)];
     //Check if (current user === random user && random user in chat room) then invoke randomUser function
-    if (!checkIsInRoom(random.account)) {
+    if (checkIsInRoomChatting(random.account) === false && currentUser.account !== random.account) {
       console.log("Đã tìm thấy bạn tâm sự mới: ", random);
-      //Update info partner for current user and random user
-      let currentUserUpdate = { ...currentUser, partner: random.account };
-      let randomUserUpdate = { ...random, partner: currentUser.account };
-      listUsersRoomRandom.push(currentUserUpdate);
-      listUsersRoomRandom.push(randomUserUpdate);
-      //Remove random user from list users according by sex
+      //Update info partner for current user and random user, then push in Room Chatting
+
+      listUsersRandomInRoomChatting.push(currentUser);
+      listUsersRandomInRoomChatting.push(random);
+      console.log("LIST USER CHATTING ROOM", listUsersRandomInRoomChatting);
+      //Remove random user from list users waiting according by sex
       if (random.sex === "boy") {
-        const indexUser = listUsersBoyRandom.indexOf(random);
-        listUsersBoyRandom.splice(indexUser, 1);
+        const indexUser = listUsersBoyRandomWaiting.indexOf(random);
+        listUsersBoyRandomWaiting.splice(indexUser, 1);
       } else if (random.sex === "girl") {
-        const indexUser = listUsersGirlRandom.indexOf(random);
-        listUsersGirlRandom.splice(indexUser, 1);
+        const indexUser = listUsersGirlRandomWaiting.indexOf(random);
+        listUsersGirlRandomWaiting.splice(indexUser, 1);
       } else if (random.sex === "lgbt") {
-        const indexUser = listUsersLGBTRandom.indexOf(random);
-        listUsersLGBTRandom.splice(indexUser, 1);
+        const indexUser = listUsersLGBTRandomWaiting.indexOf(random);
+        listUsersLGBTRandomWaiting.splice(indexUser, 1);
       }
-      //Remove current user from list users according by sex
+      //Remove current user from list users waiting according by sex
       if (currentUser.sex === "boy") {
-        const indexUser = listUsersBoyRandom.indexOf(currentUser);
-        listUsersBoyRandom.splice(indexUser, 1);
+        const indexUser = listUsersBoyRandomWaiting.indexOf(currentUser);
+        listUsersBoyRandomWaiting.splice(indexUser, 1);
       } else if (currentUser.sex === "girl") {
-        const indexUser = listUsersGirlRandom.indexOf(currentUser);
-        listUsersGirlRandom.splice(indexUser, 1);
+        const indexUser = listUsersGirlRandomWaiting.indexOf(currentUser);
+        listUsersGirlRandomWaiting.splice(indexUser, 1);
       } else if (currentUser.sex === "lgbt") {
-        const indexUser = listUsersLGBTRandom.indexOf(currentUser);
-        listUsersLGBTRandom.splice(indexUser, 1);
+        const indexUser = listUsersLGBTRandomWaiting.indexOf(currentUser);
+        listUsersLGBTRandomWaiting.splice(indexUser, 1);
       }
-      // // Remove random user from list user
-      const indexRandomUser = listUsersRandom.indexOf(random);
-      listUsersRandom.splice(indexRandomUser, 1);
+      // // Remove random user from list user waiting
+      const indexRandomUser = listUsersRandomWaiting.indexOf(random);
+      listUsersRandomWaiting.splice(indexRandomUser, 1);
       // // Remove current user from list user
-      const indexCurrentUser = listUsersRandom.indexOf(currentUser);
-      listUsersRandom.splice(indexCurrentUser, 1);
+      const indexCurrentUser = listUsersRandomWaiting.indexOf(currentUser);
+      listUsersRandomWaiting.splice(indexCurrentUser, 1);
 
       return {
         status: "success",
@@ -91,7 +101,7 @@ const randomUserRandom = (currentUser) => {
       return randomUserRandom(currentUser);
     }
   } else {
-    console.log("list-room:", listUsersRoomRandom);
+    console.log("list-room:", listUsersRandomInRoomChatting);
     console.log("Bạn đang trong phòng chat");
     return {
       status: "fail",
@@ -110,39 +120,39 @@ const findPartnerRandom = (currentUser) => {
 };
 
 const removeUserRandom = (user) => {
-  console.log(`in room ${user.account} -> ${checkIsInRoom(user.account)}`);
-  if (checkIsInRoom(user.account)) {
-    const result = listUsersRoomRandom.filter((u) => user.account === u.account);
+  console.log(`in room ${user.account} -> ${checkIsInRoomChatting(user.account)}`);
+  if (checkIsInRoomChatting(user.account)) {
+    const result = listUsersRandomInRoomChatting.filter((u) => user.account === u.account);
 
     if (result.length > 0) {
-      const getIndexListUserRoom = listUsersRoomRandom.indexOf(result[0]);
+      const getIndexListUserRoom = listUsersRandomInRoomChatting.indexOf(result[0]);
 
-      listUsersRoomRandom.splice(getIndexListUserRoom, 1);
+      listUsersRandomInRoomChatting.splice(getIndexListUserRoom, 1);
     }
   }
-  const getIndexList = listUsersRandom.indexOf(user);
+  const getIndexList = listUsersRandomWaiting.indexOf(user);
   if (getIndexList != -1) {
-    listUsersRandom.splice(getIndexList, 1);
+    listUsersRandomWaiting.splice(getIndexList, 1);
   }
   if (user.sex === "boy") {
-    const getIndexListUsers = listUsersBoyRandom.indexOf(user);
+    const getIndexListUsers = listUsersBoyRandomWaiting.indexOf(user);
     if (getIndexListUsers != -1) {
-      listUsersBoyRandom.splice(getIndexListUsers, 1);
+      listUsersBoyRandomWaiting.splice(getIndexListUsers, 1);
     }
   } else if (user.sex === "girl") {
-    const getIndexListUsers = listUsersGirlRandom.indexOf(user);
+    const getIndexListUsers = listUsersGirlRandomWaiting.indexOf(user);
     if (getIndexListUsers != -1) {
-      listUsersGirlRandom.splice(getIndexListUsers, 1);
+      listUsersGirlRandomWaiting.splice(getIndexListUsers, 1);
     }
   } else if (user.sex === "lgbt") {
-    const getIndexListUsers = listUsersLGBTRandom.indexOf(user);
+    const getIndexListUsers = listUsersLGBTRandomWaiting.indexOf(user);
     if (getIndexListUsers != -1) {
-      listUsersLGBTRandom.splice(getIndexListUsers, 1);
+      listUsersLGBTRandomWaiting.splice(getIndexListUsers, 1);
     }
   }
 };
-const checkIsInRoom = (account) => {
-  const result = listUsersRoomRandom.filter((u) => account === u.account);
+const checkIsInRoomChatting = (account) => {
+  const result = listUsersRandomInRoomChatting.filter((u) => account === u.account);
   if (result.length === 0) {
     return false;
   }
@@ -153,4 +163,5 @@ module.exports = {
   joinListUsersRandom,
   getUsersWaitingRandom,
   findPartnerRandom,
+  joinListUsersChatting,
 };

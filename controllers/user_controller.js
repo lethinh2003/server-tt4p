@@ -1,4 +1,7 @@
 const User = require("../models/User");
+const Post = require("../models/Post");
+const PostActivity = require("../models/PostActivity");
+const AvatarUser = require("../models/AvatarUser");
 const System = require("../models/System");
 const ChatRoom = require("../models/ChatRoom");
 const jwt = require("jsonwebtoken");
@@ -80,6 +83,45 @@ exports.checkUserInRoom = catchAsync(async (req, res, next) => {
     message: "OK",
   });
 });
+exports.checkUserPendingInRoom = catchAsync(async (req, res, next) => {
+  const { account } = req.body;
+  if (!account) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+  const user = await ChatRoom.findOne({ account: account, $or: [{ status: "pending" }, { status: "chatting" }] });
+  return res.status(200).json({
+    status: "success",
+    message: "OK",
+    code: user ? 1 : 0,
+  });
+});
+exports.checkPartnerPendingInRoom = catchAsync(async (req, res, next) => {
+  const { account, partner } = req.body;
+  if (!account || !partner) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+  const user = await ChatRoom.findOne({ account: partner, partner: account, status: "pending" });
+  return res.status(200).json({
+    status: "success",
+    message: "OK",
+    code: user ? 1 : 0,
+  });
+});
+exports.restoreUserPendingInRoom = catchAsync(async (req, res, next) => {
+  const user = req.user;
+  const getStatus = await Promise.all([ChatRoom.findOne({ account: user.account, status: "pending" })]);
+  console.log(getStatus);
+  const getPartner = await User.findOne({
+    account: getStatus[0].partner,
+  });
+  console.log(getPartner);
+  return res.status(200).json({
+    status: "success",
+    message: "OK",
+    data: getPartner,
+    code: 1,
+  });
+});
 exports.getDetailUser = catchAsync(async (req, res, next) => {
   const { account } = req.body;
   if (!account) {
@@ -88,7 +130,12 @@ exports.getDetailUser = catchAsync(async (req, res, next) => {
   if (req.user.account !== account) {
     return next(new AppError("Có lỗi xảy ra khi lấy thông tin tài khoản", 404));
   }
-  const user = await User.findOne({ account: account }).select("-password -__v");
+  const user = await User.findOne({ account: account })
+    .select("role status name account sex findSex createdAt following followers avatar partners messages avatarSVG")
+    .populate({
+      path: "avatarSVG",
+      select: "-__v -user -_id",
+    });
   return res.status(200).json({
     status: "success",
     data: user,
@@ -264,6 +311,7 @@ exports.followsUser = catchAsync(async (req, res, next) => {
 });
 exports.suggestionFriends = catchAsync(async (req, res, next) => {
   const limitRandomRecord = req.query.results * 1 || 3;
+  const userID = req.params.userID;
   console.log(limitRandomRecord);
   User.countDocuments().exec(function (err, count) {
     // Get a random entry
@@ -273,14 +321,17 @@ exports.suggestionFriends = catchAsync(async (req, res, next) => {
     User.find()
       .skip(random)
       .limit(3)
-      .select(
-        "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date  "
-      )
+      .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
+      .populate({
+        path: "avatarSVG",
+        select: "-__v -user -_id",
+      })
       .exec(function (err, result) {
+        const newResult = result.filter((item, i) => item._id.toString() !== userID);
         res.status(200).json({
           status: "success",
 
-          data: result,
+          data: newResult,
         });
       });
   });
@@ -407,6 +458,7 @@ exports.login = async (req, res) => {
 };
 exports.createUser = async (req, res) => {
   try {
+    const { email, account, name, sex, findSex, date, city, password } = req.body;
     const user = await User.findOne({ account: req.body.account });
     if (user) {
       return res.status(404).json({
@@ -414,11 +466,68 @@ exports.createUser = async (req, res) => {
         message: "Tài khoản đã tồn tại, vui lòng thử tài khoản khác",
       });
     }
+
     const newUser = await User.create(req.body);
+    const createAvatarUser = await AvatarUser.create({
+      user: newUser._id,
+    });
+    if (newUser.sex === "boy") {
+      createAvatarUser.generateBoy();
+      await createAvatarUser.save();
+    } else if (newUser.sex === "girl") {
+      createAvatarUser.generateGirl();
+      await createAvatarUser.save();
+    } else if (newUser.sex === "lgbt") {
+      createAvatarUser.generateLGBT();
+      await createAvatarUser.save();
+    }
+    await User.findOneAndUpdate(
+      {
+        _id: newUser._id,
+      },
+      {
+        avatarSVG: createAvatarUser._id,
+      }
+    );
 
     res.status(201).json({
       status: "success",
       message: "Đăng ký thành công, chúc bạn vui vẻ!!",
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "err",
+      message: err,
+    });
+  }
+};
+exports.updateAll = async (req, res) => {
+  try {
+    const user = await PostActivity.deleteMany({});
+
+    res.status(201).json({
+      status: "success",
+      message: "Update success!",
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: "err",
+      message: err,
+    });
+  }
+};
+exports.createAvatar = async (req, res) => {
+  try {
+    const user = await AvatarUser.findOne({
+      user: "6253bcbb782c3122e0c71504",
+    });
+    user.generateBoy();
+    await user.save();
+    console.log(user);
+    res.status(201).json({
+      status: "success",
+      user,
+      message: "create success!",
     });
   } catch (err) {
     res.status(400).json({
@@ -457,7 +566,9 @@ exports.getAllUsers = async (req, res) => {
       const fields = req.query.fields.split(",").join(" ");
       query = query.select(fields);
     } else {
-      query = query.select("-__v -password");
+      query = query.select(
+        "role status name account sex createdAt following followers avatar partners messages avatarSVG"
+      );
       // - tien to de k muon hien ra screen
     }
     //pagination
