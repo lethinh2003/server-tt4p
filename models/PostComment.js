@@ -52,6 +52,7 @@ const postCommentSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    collection: "post_comment",
   }
 );
 postCommentSchema.pre(/^find/, function (next) {

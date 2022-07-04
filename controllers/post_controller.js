@@ -79,6 +79,8 @@ exports.getDetailPostBySlug = catchAsync(async (req, res, next) => {
       path: "hearts",
       select: "-__v",
     });
+  getPost.updateCommentsCount();
+  await getPost.save();
 
   return res.status(200).json({
     status: "success",

@@ -23,7 +23,7 @@ exports.getDetailPostComments = catchAsync(async (req, res, next) => {
   }
   let sortType = "_id";
   if (req.query.sort === "latest") {
-    sortType = "createdAt";
+    sortType = "-createdAt";
     const getPostComments = await PostComment.find({
       post: { $in: [postId] },
     })
@@ -104,15 +104,33 @@ exports.DeletePostComment = catchAsync(async (req, res, next) => {
   if (!userId || userId !== req.user.id || !commentId) {
     return next(new AppError("Please fill in all fields", 404));
   }
-  const deleteComment = await PostComment.findByIdAndDelete(commentId);
-  await Post.findByIdAndUpdate(deleteComment.post[0], {
-    $pull: { comments: deleteComment._id },
-    $inc: { comments_count: -1 },
+  const checkValidComment = await PostComment.findOne({
+    _id: commentId,
   });
+  if (!checkValidComment) {
+    return next(new AppError("This content is invalid!", 404));
+  }
+  const findReplyComments = await PostComment.find({
+    parent_comment: commentId,
+  });
+  const getReplyCommentsId = findReplyComments.map((item) => item._id);
+  const listCommentsNeedDelete = [checkValidComment._id].concat(getReplyCommentsId);
+  await Promise.all([
+    Post.findByIdAndUpdate(checkValidComment.post[0], {
+      $pull: { comments: { $in: listCommentsNeedDelete } },
+      $inc: { comments_count: -listCommentsNeedDelete.length },
+    }),
+    PostComment.deleteMany({
+      parent_comment: commentId,
+    }),
+    PostComment.deleteOne({
+      _id: commentId,
+    }),
+  ]);
+
   return res.status(200).json({
     status: "success",
-    message: "Edit Success",
-    data: deleteComment,
+    message: "Delete Success",
   });
 });
 exports.CreatePostComment = catchAsync(async (req, res, next) => {
@@ -145,33 +163,69 @@ exports.CreateLikePostComment = catchAsync(async (req, res, next) => {
   if (!userId || userId !== req.user.id || !commentId) {
     return next(new AppError("Please fill in all fields", 404));
   }
-  const check_user_liked_comment = await PostComment.find({ _id: commentId, likes: { $in: [userId] } });
-  if (check_user_liked_comment.length > 0) {
-    await PostComment.findOneAndUpdate(
+  const checkCommentIsValid = await PostComment.findOne({
+    _id: commentId,
+  });
+  if (!checkCommentIsValid) {
+    return next(new AppError("This content is invalid!", 404));
+  }
+  const listUsersLike = checkCommentIsValid.likes;
+  // DISLIKE
+  if (listUsersLike.includes(userId)) {
+    const result = await PostComment.findOneAndUpdate(
       {
         _id: commentId,
       },
       {
         $pull: { likes: userId },
+        $push: { dislikes: userId },
+      },
+      {
+        new: true,
       }
     );
+    const dataSendClient = {
+      room: `post_comment_${commentId}`,
+      commentId: commentId,
+      userId: userId,
+      likes: result.likes.length,
+      dislikes: result.dislikes.length,
+      type: "dislike",
+    };
+    _io.to(dataSendClient.room).emit("update-reaction-post-comment", dataSendClient);
     return res.status(200).json({
       status: "success",
       message: "delete_success",
+      data: result,
     });
   } else {
-    await PostComment.findOneAndUpdate(
+    // LIKE
+
+    const result = await PostComment.findOneAndUpdate(
       {
         _id: commentId,
       },
       {
         $push: { likes: userId },
+        $pull: { dislikes: userId },
+      },
+      {
+        new: true,
       }
     );
-
+    const dataSendClient = {
+      room: `post_comment_${commentId}`,
+      commentId: commentId,
+      userId: userId,
+      likes: result.likes.length,
+      dislikes: result.dislikes.length,
+      type: "like",
+    };
+    _io.to(dataSendClient.room).emit("update-reaction-post-comment", dataSendClient);
     return res.status(200).json({
       status: "success",
       message: "create_success",
+      data: result,
     });
   }
 });
@@ -181,33 +235,71 @@ exports.CreateDislikePostComment = catchAsync(async (req, res, next) => {
   if (!userId || userId !== req.user.id || !commentId) {
     return next(new AppError("Please fill in all fields", 404));
   }
-  const check_user_disliked_comment = await PostComment.find({ _id: commentId, dislikes: { $in: [userId] } });
-  if (check_user_disliked_comment.length > 0) {
-    await PostComment.findOneAndUpdate(
+  const checkCommentIsValid = await PostComment.findOne({
+    _id: commentId,
+  });
+  if (!checkCommentIsValid) {
+    return next(new AppError("This content is invalid!", 404));
+  }
+  const listUsersDislike = checkCommentIsValid.dislikes;
+  // DISLIKE
+  if (listUsersDislike.includes(userId)) {
+    const result = await PostComment.findOneAndUpdate(
       {
         _id: commentId,
       },
       {
+        $push: { likes: userId },
         $pull: { dislikes: userId },
+      },
+      {
+        new: true,
       }
     );
+    const dataSendClient = {
+      room: `post_comment_${commentId}`,
+      commentId: commentId,
+      userId: userId,
+      likes: result.likes.length,
+      dislikes: result.dislikes.length,
+      type: "like",
+    };
+    _io.to(dataSendClient.room).emit("update-reaction-post-comment", dataSendClient);
+
     return res.status(200).json({
       status: "success",
       message: "delete_success",
+      data: result,
     });
   } else {
-    await PostComment.findOneAndUpdate(
+    // LIKE
+
+    const result = await PostComment.findOneAndUpdate(
       {
         _id: commentId,
       },
       {
+        $pull: { likes: userId },
         $push: { dislikes: userId },
+      },
+      {
+        new: true,
       }
     );
+    const dataSendClient = {
+      room: `post_comment_${commentId}`,
+      commentId: commentId,
+      userId: userId,
+      likes: result.likes.length,
+      dislikes: result.dislikes.length,
+      type: "dislike",
+    };
+    _io.to(dataSendClient.room).emit("update-reaction-post-comment", dataSendClient);
 
     return res.status(200).json({
       status: "success",
       message: "create_success",
+      data: result,
     });
   }
 });

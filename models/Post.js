@@ -81,11 +81,10 @@ postSchema.pre("save", async function (next) {
 
   next();
 });
-postSchema.pre("update", async function (next) {
-  console.log("heheh");
-
-  next();
-});
+postSchema.methods.updateCommentsCount = function () {
+  this.comments_count = this.comments.length;
+  console.log(this.comments_count);
+};
 
 const Post = mongoose.models.Post || mongoose.model("Post", postSchema);
 module.exports = Post;

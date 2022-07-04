@@ -19,6 +19,12 @@ exports.CreateRepPostComment = catchAsync(async (req, res, next) => {
   if (!userId || userId !== req.user.id || !commentId || !content) {
     return next(new AppError("Please fill in all fields", 404));
   }
+  const checkValidParentComment = await PostComment.findOne({
+    _id: commentId,
+  });
+  if (!checkValidParentComment) {
+    return next(new AppError("This content is invalid!", 404));
+  }
 
   const createRepComment = await PostComment.create({
     user: [req.user._id],
@@ -26,14 +32,21 @@ exports.CreateRepPostComment = catchAsync(async (req, res, next) => {
     content: content,
     parent_comment: commentId,
   });
-  await PostComment.findOneAndUpdate(
-    {
-      _id: commentId,
-    },
-    {
+  await Promise.all([
+    PostComment.findByIdAndUpdate(commentId, {
       $push: { rep_comments: createRepComment._id },
-    }
-  );
+    }),
+    Post.findByIdAndUpdate(postId, {
+      $push: { comments: createRepComment._id },
+      $inc: { comments_count: 1 },
+    }),
+  ]);
+  // const dataSendClient = {
+  //   room: `post_comment_${commentId}`,
+  //   commentId,
+  //   data: createRepComment,
+  // };
+  // _io.to(dataSendClient.room).emit("create-rep-post-comment", dataSendClient);
 
   return res.status(200).json({
     status: "success",

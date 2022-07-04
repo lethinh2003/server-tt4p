@@ -1,5 +1,6 @@
 const ChatRoom = require("../models/ChatRoom");
 const Message = require("../models/Message");
+const PostComment = require("../models/PostComment");
 const User = require("../models/User");
 const {
   findPartnerRandom,
@@ -637,6 +638,14 @@ class SocketServices {
     });
 
     //// Post Comment
+    socket.on("join-room-post-comment", (data) => {
+      socket.join(`post_comment_${data}`);
+      console.log("ROOM:", _io.sockets.adapter.rooms);
+    });
+    socket.on("leave-room-post-comment", (data) => {
+      socket.leave(`post_comment_${data}`);
+      console.log("ROOM:", _io.sockets.adapter.rooms);
+    });
     socket.on("join-post-room", (data) => {
       socket.join(`post_${data._id}`);
       console.log("ROOM:", _io.sockets.adapter.rooms);
@@ -644,9 +653,49 @@ class SocketServices {
     socket.on("typing-post-comment", ({ room, value }) => {
       socket.to(room).emit("typing-post-comment", value);
     });
-    socket.on("create-post-comment", (data) => {
-      console.log(data.room);
-      _io.to(data.room).emit("create-post-comment");
+    socket.on("create-post-comment", async (data, callback) => {
+      try {
+        console.log(data.room);
+        const getPostComment = await PostComment.find({
+          _id: data.commentId,
+        });
+        _io.to(data.room).emit("create-new-post-comment", getPostComment);
+        callback({
+          status: "ok",
+        });
+      } catch (err) {
+        callback({
+          status: "err",
+        });
+      }
+    });
+    socket.on("delete-post-rep-comment", async (data, callback) => {
+      console.log(data);
+      console.log("ROOM:", _io.sockets.adapter.rooms);
+      _io.to(data.room).emit("delete-post-rep-comment", data);
+      callback({
+        status: "ok",
+      });
+    });
+    socket.on("update-post-comments", (data) => {
+      _io.to(data.room).emit("update-post-comments", data.item);
+    });
+    socket.on("create-new-post-rep-comment", async (data, callback) => {
+      try {
+        console.log(data);
+        const getPostComment = await PostComment.findOne({
+          _id: data.parentComment,
+        });
+
+        _io.to(data.room).emit("create-new-post-rep-comment", getPostComment);
+        callback({
+          status: "ok",
+        });
+      } catch (err) {
+        callback({
+          status: "err",
+        });
+      }
     });
 
     //SOCKET DISCONNECTING
