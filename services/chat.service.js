@@ -680,6 +680,22 @@ class SocketServices {
     socket.on("update-post-comments", (data) => {
       _io.to(data.room).emit("update-post-comments", data.item);
     });
+    socket.on("update-edit-post-comment", (data, callback) => {
+      _io.to(data.room).emit("update-edit-post-comment", data);
+      callback({
+        status: "ok",
+      });
+    });
+    socket.on("join-room-update-public-post", () => {
+      socket.join("update-public-post");
+      console.log("ROOM:", _io.sockets.adapter.rooms);
+    });
+
+    socket.on("update-likes-post", (data) => {
+      console.log(data);
+      _io.to(`post_${data.postID}`).emit("update-likes-post", data);
+      _io.to(`update-public-post`).emit("update-public-post", data);
+    });
     socket.on("create-new-post-rep-comment", async (data, callback) => {
       try {
         console.log(data);

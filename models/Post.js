@@ -3,64 +3,65 @@ const bcrypt = require("bcrypt");
 const validator = require("validator");
 const crypto = require("crypto");
 const slugify = require("slugify");
-const postSchema = new mongoose.Schema({
-  user: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: "User",
-      required: [true, "Missing user"],
-    },
-  ],
-  comments: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: "PostComment",
-    },
-  ],
-  hearts: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: "PostHeart",
-    },
-  ],
+const postSchema = new mongoose.Schema(
+  {
+    user: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "User",
+        required: [true, "Missing user"],
+      },
+    ],
+    comments: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "PostComment",
+      },
+    ],
+    hearts: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "PostHeart",
+      },
+    ],
 
-  hearts_count: {
-    type: Number,
-    default: 0,
+    hearts_count: {
+      type: Number,
+      default: 0,
+    },
+    comments_count: {
+      type: Number,
+      default: 0,
+    },
+    title: {
+      type: String,
+      trim: true,
+      minlength: [5, "Title must lengths greater or equal 5"],
+      required: [true, "Missing title"],
+      unique: [true, "Title valid, please choose new title"],
+    },
+    content: {
+      type: String,
+      trim: true,
+      minlength: [5, "Content must lengths greater or equal 5"],
+      required: [true, "Missing content"],
+    },
+    color: {
+      type: String,
+    },
+    slug: {
+      type: String,
+    },
+    status: {
+      type: Boolean,
+      default: true,
+    },
   },
-  comments_count: {
-    type: Number,
-    default: 0,
-  },
-  title: {
-    type: String,
-    trim: true,
-    minlength: [5, "Title must lengths greater or equal 5"],
-    required: [true, "Missing title"],
-    unique: [true, "Title valid, please choose new title"],
-  },
-  content: {
-    type: String,
-    trim: true,
-    minlength: [5, "Content must lengths greater or equal 5"],
-    required: [true, "Missing content"],
-  },
-  color: {
-    type: String,
-  },
-  slug: {
-    type: String,
-  },
-  status: {
-    type: Boolean,
-    default: true,
-  },
-
-  createdAt: {
-    type: String,
-    default: () => new Date().toISOString(),
-  },
-});
+  {
+    collation: "post",
+    timestamps: true,
+  }
+);
 postSchema.pre("save", async function (next) {
   if (!this.color) {
     this.color = "#120c1c";
@@ -83,7 +84,6 @@ postSchema.pre("save", async function (next) {
 });
 postSchema.methods.updateCommentsCount = function () {
   this.comments_count = this.comments.length;
-  console.log(this.comments_count);
 };
 
 const Post = mongoose.models.Post || mongoose.model("Post", postSchema);

@@ -19,20 +19,40 @@ const postActivitySchema = new mongoose.Schema(
         required: [true, "Missing user"],
       },
     ],
-    createdAt: {
-      type: String,
-      default: () => new Date().toISOString(),
-    },
   },
   {
-    toJSON: {
-      virtuals: true,
-    },
-    toObject: {
-      virtuals: true,
-    },
+    collection: "post_activity",
+    timestamps: true,
   }
 );
 
+postActivitySchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "post",
+    select: "-__v",
+    populate: {
+      path: "user",
+      select:
+        "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
+      populate: {
+        path: "avatarSVG",
+        model: "AvatarUser",
+        select: "-user",
+      },
+    },
+  });
+  this.populate({
+    path: "user",
+    select:
+      "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
+    populate: {
+      path: "avatarSVG",
+      model: "AvatarUser",
+      select: "-user",
+    },
+  });
+
+  next();
+});
 const PostActivity = mongoose.models.PostActivity || mongoose.model("PostActivity", postActivitySchema);
 module.exports = PostActivity;

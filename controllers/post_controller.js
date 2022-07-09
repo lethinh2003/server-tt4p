@@ -95,24 +95,7 @@ exports.getDetailPostActivity = catchAsync(async (req, res, next) => {
 
   const getPostActivity = await PostActivity.find({
     user: { $in: [req.user.id] },
-  })
-    .sort({ _id: -1 })
-    .populate({
-      path: "post",
-      select: "-__v",
-      populate: {
-        path: "user",
-        model: "User",
-        select:
-          "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-      },
-    })
-
-    .populate({
-      path: "user",
-      select:
-        "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-    });
+  }).sort({ _id: 1 });
 
   return res.status(200).json({
     status: "success",

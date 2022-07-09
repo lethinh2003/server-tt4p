@@ -17,6 +17,7 @@ router.route("/admin").post(authController.protect, authController.reStrictTo("a
 router.route("/").post(authController.protect, userController.getDetailUser);
 router.route("/update").post(authController.protect, userController.updateDetailUser);
 router.route("/follows").post(authController.protect, userController.followsUser);
+router.route("/get-posts-count/:userID").get(authController.protect, userController.getPostsCount);
 router.route("/reset-password/:token").get(userController.checkTokenResetPassword);
 router.route("/reset-password/:token").post(userController.resetPassword);
 router.route("/missing-password").post(userController.missingPassword);

@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
 
 const messageSchema = new mongoose.Schema(
   {
@@ -25,7 +24,7 @@ const messageSchema = new mongoose.Schema(
     },
   },
   {
-    collection: "message",
+    collection: "chat_message",
     timestamps: true,
   }
 );

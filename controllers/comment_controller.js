@@ -43,36 +43,7 @@ exports.getDetailPostComments = catchAsync(async (req, res, next) => {
     })
       .skip(skip)
       .limit(results)
-      .sort(sortType)
-      .populate({
-        path: "post",
-        select: "-__v",
-      })
-      .populate({
-        path: "rep_comments",
-        select: "-__v",
-        populate: {
-          path: "user",
-          model: "User",
-          select:
-            "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-          populate: {
-            path: "avatarSVG",
-            model: "AvatarUser",
-            select: "-user",
-          },
-        },
-      })
-      .populate({
-        path: "user",
-        select:
-          "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
-        populate: {
-          path: "avatarSVG",
-          model: "AvatarUser",
-          select: "-user",
-        },
-      });
+      .sort(sortType);
 
     return res.status(200).json({
       status: "success",
@@ -84,13 +55,22 @@ exports.getDetailPostComments = catchAsync(async (req, res, next) => {
 exports.EditPostComment = catchAsync(async (req, res, next) => {
   const { commentId } = req.params;
   const { userId, content } = req.body;
-  console.log(commentId);
   if (!userId || userId !== req.user.id || !commentId || !content) {
     return next(new AppError("Please fill in all fields", 404));
   }
-  const editComment = await PostComment.findByIdAndUpdate(commentId, {
-    content: content,
-  });
+  const editComment = await PostComment.findByIdAndUpdate(
+    commentId,
+    {
+      content: content,
+    },
+    {
+      new: false,
+      upsert: false,
+    }
+  );
+  if (!editComment) {
+    return next(new AppError("This content is invalid!", 404));
+  }
   return res.status(200).json({
     status: "success",
     message: "Edit Success",

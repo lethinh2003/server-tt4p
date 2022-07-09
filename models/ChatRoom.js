@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
 
 const chatRoomSchema = new mongoose.Schema(
   {
@@ -23,7 +22,7 @@ const chatRoomSchema = new mongoose.Schema(
     },
   },
   {
-    collection: "chat-room",
+    collection: "chat_room",
     timestamps: true,
   }
 );

@@ -10,18 +10,18 @@ exports.createHeart = catchAsync(async (req, res, next) => {
     return next(new AppError("Please fill in post ID", 404));
   }
 
-  const check_user_hearted = await PostHeart.find({
+  const check_user_hearted = await PostHeart.findOne({
     user: [req.user.id],
     post: [postID],
   });
 
-  if (check_user_hearted.length > 0) {
+  if (check_user_hearted) {
     //delete heart
     const data = await Promise.all([
       Post.findByIdAndUpdate(
         postID,
         {
-          $pull: { hearts: check_user_hearted[0]._id },
+          $pull: { hearts: check_user_hearted._id },
           $inc: { hearts_count: -1 },
         },
         { new: true }

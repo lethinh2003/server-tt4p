@@ -195,6 +195,16 @@ exports.checkTokenResetPassword = catchAsync(async (req, res, next) => {
     },
   });
 });
+exports.getPostsCount = catchAsync(async (req, res, next) => {
+  const { userID } = req.params;
+  const posts = await Post.find({
+    user: { $in: [userID] },
+  });
+  return res.status(200).json({
+    status: "success",
+    data: posts.length,
+  });
+});
 exports.resetPassword = catchAsync(async (req, res, next) => {
   const { token } = req.params;
   const { password } = req.body;
