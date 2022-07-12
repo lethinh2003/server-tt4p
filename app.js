@@ -13,6 +13,7 @@ const postRouters = require("./routers/post_routers");
 const heartRouters = require("./routers/heart_routers");
 
 const systemRouters = require("./routers/system_routers");
+const notifyRouters = require("./routers/notify_routers");
 const chatRoomRouters = require("./routers/chatRoom_routers");
 const cors = require("cors");
 //MIDDLEWARE

@@ -1,6 +1,7 @@
 const ChatRoom = require("../models/ChatRoom");
 const Message = require("../models/Message");
 const PostComment = require("../models/PostComment");
+const Notify = require("../models/Notify");
 const User = require("../models/User");
 const {
   findPartnerRandom,
@@ -696,6 +697,7 @@ class SocketServices {
       _io.to(`post_${data.postID}`).emit("update-likes-post", data);
       _io.to(`update-public-post`).emit("update-public-post", data);
     });
+
     socket.on("create-new-post-rep-comment", async (data, callback) => {
       try {
         console.log(data);
@@ -713,7 +715,35 @@ class SocketServices {
         });
       }
     });
+    socket.on("update-notify-number", async (data, callback) => {
+      try {
+        console.log(data);
+        const getPostComment = await Notify.updateMany(
+          {
+            user_receive: data,
+            read: false,
+          },
+          { read: true }
+        );
 
+        socket.emit("update-notify-number", { data: "hey there!" });
+        callback({
+          status: "ok",
+        });
+      } catch (err) {
+        callback({
+          status: "err",
+        });
+      }
+    });
+    socket.on("join-room-notify", (data) => {
+      socket.join(`${data}_notify`);
+      console.log("ROOM:", _io.sockets.adapter.rooms);
+    });
+    socket.on("inc-notify-number", (data) => {
+      console.log(data);
+      _io.to(`${data.account}_notify`).emit("inc-notify-number", data.number);
+    });
     //SOCKET DISCONNECTING
     socket.on("disconnecting", async () => {
       if (socket.userIO) {
