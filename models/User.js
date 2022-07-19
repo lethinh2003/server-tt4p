@@ -104,6 +104,9 @@ const userSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    refreshToken: String,
+    accessToken: String,
+
     emailActiveToken: String,
     emailActiveTokenExpires: Date,
     resetPasswordToken: String,
@@ -118,11 +121,15 @@ const userSchema = new mongoose.Schema(
   }
 );
 userSchema.pre("save", async function (next) {
-  this.password = await bcrypt.hash(this.password, 12);
+  if (this.isNew) {
+    this.password = await bcrypt.hash(this.password, 12);
+  }
 
   next();
 });
-
+userSchema.methods.correctPassword = async function (candidatePassword, password) {
+  return await bcrypt.compare(candidatePassword, password);
+};
 userSchema.methods.createActiveEmailToken = async function (num) {
   const token = await crypto.randomBytes(num).toString("hex");
   this.emailActiveToken = await crypto.createHash("sha256").update(token).digest("hex");

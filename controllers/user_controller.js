@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Post = require("../models/Post");
 const PostActivity = require("../models/PostActivity");
+const Follow = require("../models/Follow");
 const AvatarUser = require("../models/AvatarUser");
 const System = require("../models/System");
 const ChatRoom = require("../models/ChatRoom");
@@ -14,11 +15,99 @@ const sendEmail = require("../utils/email");
 const crypto = require("crypto");
 
 const { json } = require("body-parser");
-const signToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: process.env.JWT_EXPIRES,
+const JWT_EXPIRES = process.env.JWT_EXPIRES || 60 * 60;
+const JWT_REFRESH_TOKEN_EXPIRES = process.env.JWT_REFRESH_TOKEN_EXPIRES || 24 * 60 * 60 * 365;
+const signToken = (data, expired) => {
+  return jwt.sign(data, process.env.JWT_SECRET_KEY, {
+    expiresIn: expired ? expired : parseInt(JWT_EXPIRES),
   });
 };
+
+exports.loginUser = catchAsync(async (req, res, next) => {
+  const { account, password } = req.body;
+  if (!account || !password) {
+    return next(new AppError("Vui lòng nhập tài khoản hoặc mật khẩu!", 400));
+  }
+  const user = await User.findOne({ account: account });
+  if (!user) {
+    return next(new AppError("Tài khoản không tồn tại!", 401));
+  }
+  const correct = await user.correctPassword(password, user.password);
+  if (!correct) {
+    return next(new AppError("Mật khẩu không hợp lệ", 401));
+  }
+
+  const token = signToken({
+    id: user._id,
+    account: user.account,
+    role: user.role,
+    type: "AT",
+  });
+  const refreshToken = signToken(
+    {
+      id: user._id,
+      account: user.account,
+      role: user.role,
+      type: "RT",
+    },
+    parseInt(JWT_REFRESH_TOKEN_EXPIRES)
+  );
+  user.refreshToken = refreshToken;
+  user.accessToken = token;
+  await user.save();
+  res.status(200).json({
+    status: "success",
+    accessToken: token,
+    accessTokenExpiry: Date.now() + 60 * 60 * 1000,
+    refreshToken,
+    data: user,
+  });
+});
+exports.refreshToken = catchAsync(async (req, res, next) => {
+  const { token } = req.body;
+  if (!token) {
+    return next(new AppError("Vui lòng nhập token!", 400));
+  }
+  // const user = await User.findOne({
+  //   refreshToken: token,
+  // });
+  // console.log(token);
+  // if (!user) {
+  //   return next(new AppError("Token không hợp lệ hoặc đã hết hạn!", 401));
+  // }
+  const decodeToken = jwt.verify(token, process.env.JWT_SECRET_KEY);
+  if (decodeToken.type === "AT") {
+    return next(new AppError("Token không hợp lệ hoặc đã hết hạn!", 401));
+  }
+  const user = await User.findOne({
+    account: decodeToken.account,
+  });
+  const newToken = signToken({
+    id: decodeToken.id,
+    account: decodeToken.account,
+    role: user.role,
+    type: "AT",
+  });
+
+  const newRefreshToken = signToken(
+    {
+      id: decodeToken.id,
+      account: decodeToken.account,
+      role: user.role,
+      type: "RT",
+    },
+    parseInt(JWT_REFRESH_TOKEN_EXPIRES)
+  );
+  user.refreshToken = newRefreshToken;
+  user.accessToken = newToken;
+  await user.save();
+  res.status(200).json({
+    status: "success",
+    accessToken: newToken,
+    accessTokenExpiry: Date.now() + 60 * 60 * 1000,
+    refreshToken: newRefreshToken,
+  });
+});
 
 exports.uploadAvatar = catchAsync(async (req, res, next) => {
   if (!req.file) {
@@ -141,6 +230,25 @@ exports.getDetailUser = catchAsync(async (req, res, next) => {
     data: user,
   });
 });
+exports.getDetailUserByAccount = catchAsync(async (req, res, next) => {
+  const { account } = req.params;
+  if (!account) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+  const user = await User.findOne({ account: account })
+    .select("role status name account sex findSex createdAt following followers avatar partners messages avatarSVG")
+    .populate({
+      path: "avatarSVG",
+      select: "-__v -user -_id",
+    });
+  if (!user) {
+    return next(new AppError("Tài khoản không tồn tại", 404));
+  }
+  return res.status(200).json({
+    status: "success",
+    data: user,
+  });
+});
 exports.checkActiveEmail = catchAsync(async (req, res, next) => {
   const { token } = req.params;
   const checkToken = await crypto.createHash("sha256").update(token).digest("hex");
@@ -193,6 +301,82 @@ exports.checkTokenResetPassword = catchAsync(async (req, res, next) => {
       account: user.account,
       updatedPasswordAt: user.updatedPasswordAt,
     },
+  });
+});
+exports.getAllPostsByAccount = catchAsync(async (req, res, next) => {
+  const { userID } = req.params;
+
+  const pageSize = req.query.pageSize * 1 || 5;
+  const page = req.query.page * 1 || 1;
+  const skip = (page - 1) * pageSize;
+  let sortType = "-createdAt";
+  if (!userID) {
+    return next(new AppError("Vui lòng nhập đầy đủ thông tin", 404));
+  }
+  let posts;
+  if (userID != req.user._id) {
+    posts = Post.find({
+      user: { $in: [userID] },
+      status: true,
+    });
+  } else {
+    posts = Post.find({
+      user: { $in: [userID] },
+    });
+  }
+
+  posts = posts.skip(skip).limit(pageSize).sort(sortType);
+  posts = await posts;
+  return res.status(200).json({
+    status: "success",
+    data: posts,
+    results: posts.length,
+  });
+});
+exports.getAllFollowingsByAccount = catchAsync(async (req, res, next) => {
+  const { userID } = req.params;
+  const pageSize = req.query.pageSize * 1 || 5;
+  const page = req.query.page * 1 || 1;
+  const skip = (page - 1) * pageSize;
+  let sortType = "-createdAt";
+  if (!userID) {
+    return next(new AppError("Vui lòng nhập đầy đủ thông tin", 404));
+  }
+
+  const users = await Follow.find({
+    user: userID,
+  })
+    .skip(skip)
+    .limit(pageSize)
+    .sort(sortType);
+
+  return res.status(200).json({
+    status: "success",
+    data: users,
+    results: users.length,
+  });
+});
+exports.getAllFollowersByAccount = catchAsync(async (req, res, next) => {
+  const { userID } = req.params;
+  const pageSize = req.query.pageSize * 1 || 5;
+  const page = req.query.page * 1 || 1;
+  const skip = (page - 1) * pageSize;
+  let sortType = "-createdAt";
+  if (!userID) {
+    return next(new AppError("Vui lòng nhập đầy đủ thông tin", 404));
+  }
+
+  const users = await Follow.find({
+    following: userID,
+  })
+    .skip(skip)
+    .limit(pageSize)
+    .sort(sortType);
+
+  return res.status(200).json({
+    status: "success",
+    data: users,
+    results: users.length,
   });
 });
 exports.getPostsCount = catchAsync(async (req, res, next) => {
@@ -277,47 +461,56 @@ exports.followsUser = catchAsync(async (req, res, next) => {
   if (!userId || userId == req.user._id) {
     return next(new AppError("Vui lòng nhập user id", 404));
   }
-  if (checkIsFollowing) {
-    await Promise.all([
-      User.findOneAndUpdate(
-        { _id: req.user._id },
-        {
-          $pull: { following: userId },
-        }
-      ),
-      User.findOneAndUpdate(
-        { _id: userId },
-        {
-          $pull: { followers: req.user._id },
-        }
-      ),
-    ]);
+  const checkFollowUser = await Follow.findOne({
+    user: req.user._id,
+    following: userId,
+  });
+  if (checkFollowUser) {
+    await Follow.findOneAndDelete({
+      user: req.user._id,
+      following: userId,
+    });
+
     return res.status(200).json({
       status: "success",
       code: 0,
       message: "Unfollow success",
     });
   } else {
-    await Promise.all([
-      User.findOneAndUpdate(
-        { _id: req.user._id },
-        {
-          $push: { following: userId },
-        }
-      ),
-      User.findOneAndUpdate(
-        { _id: userId },
-        {
-          $push: { followers: req.user._id },
-        }
-      ),
-    ]);
+    await Follow.create({
+      user: req.user._id,
+      following: userId,
+    });
     return res.status(200).json({
       status: "success",
       code: 1,
       message: "Follow success",
     });
   }
+});
+exports.deleteFollowsUser = catchAsync(async (req, res, next) => {
+  const { userId } = req.body;
+  const listFollowings = req.user.following;
+  if (!userId || userId == req.user._id) {
+    return next(new AppError("Vui lòng nhập user id", 404));
+  }
+  const checkFollowUser = await Follow.findOne({
+    user: userId,
+    following: req.user._id,
+  });
+  if (checkFollowUser) {
+    await Follow.findOneAndDelete({
+      user: userId,
+      following: req.user._id,
+    });
+
+    return res.status(200).json({
+      status: "success",
+      code: 0,
+      message: "Delete success",
+    });
+  }
+  return next(new AppError("Có lỗi xảy ra", 404));
 });
 exports.suggestionFriends = catchAsync(async (req, res, next) => {
   const limitRandomRecord = req.query.results * 1 || 3;

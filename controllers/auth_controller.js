@@ -183,20 +183,20 @@ exports.protect = async (req, res, next) => {
     token = req.headers.authorization.split(" ")[1];
   }
   if (!token) {
-    return invalidValue(res, "Login to get this api");
+    return next(new AppError("Token không hợp lệ hoặc đã hết hạn!", 401));
   }
   try {
     const decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    if (decode.type === "RT") {
+      return next(new AppError("Token không hợp lệ hoặc đã hết hạn!", 401));
+    }
 
     const user = await User.findOne({ _id: decode.id });
 
     if (!user) {
-      return invalidValue(res, "Login to get this api");
+      return next(new AppError("Token không hợp lệ hoặc đã hết hạn!", 401));
     }
-    // const test = await user.changedPassword(decode.iat);
-    // if (test) {
-    //   return invalidValue(res, "Login to get this api");
-    // }
+
     req.user = user;
   } catch (err) {
     return invalidValue(res, err);

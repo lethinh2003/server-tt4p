@@ -744,6 +744,18 @@ class SocketServices {
       console.log(data);
       _io.to(`${data.account}_notify`).emit("inc-notify-number", data.number);
     });
+    socket.on("join-user-online", (data) => {
+      const checkUsersOnline = _usersOnline.filter((item) => item.account === data.account);
+      console.log("check user", checkUsersOnline);
+      if (checkUsersOnline.length === 0) {
+        _usersOnline.push({
+          _id: data._id,
+          account: data.account,
+        });
+        console.log("LIST USERS ONLINE", _usersOnline);
+        _io.sockets.emit("users-online", _usersOnline);
+      }
+    });
     //SOCKET DISCONNECTING
     socket.on("disconnecting", async () => {
       if (socket.userIO) {

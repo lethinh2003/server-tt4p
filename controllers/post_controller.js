@@ -55,6 +55,43 @@ exports.getDetailPost = catchAsync(async (req, res, next) => {
     data: getPost,
   });
 });
+exports.deleteDetailPost = catchAsync(async (req, res, next) => {
+  const { postID } = req.body;
+  if (!postID) {
+    return next(new AppError("Please fill in post ID", 404));
+  }
+
+  const getPost = await Post.findOneAndDelete({
+    _id: postID,
+    user: { $in: [req.user.id] },
+  });
+  if (!getPost) {
+    return next(new AppError("Có lỗi xảy ra!", 404));
+  }
+  return res.status(200).json({
+    status: "success",
+  });
+});
+exports.setStatusDetailPost = catchAsync(async (req, res, next) => {
+  const { postID, status } = req.body;
+  if (!postID) {
+    return next(new AppError("Please fill in post ID", 404));
+  }
+
+  const getPost = await Post.findOneAndUpdate(
+    {
+      _id: postID,
+      user: { $in: [req.user.id] },
+    },
+    { status: status }
+  );
+  if (!getPost) {
+    return next(new AppError("Có lỗi xảy ra!", 404));
+  }
+  return res.status(200).json({
+    status: "success",
+  });
+});
 exports.getDetailPostBySlug = catchAsync(async (req, res, next) => {
   const { slug } = req.body;
 

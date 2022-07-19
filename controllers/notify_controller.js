@@ -54,6 +54,22 @@ exports.deleteNotify = catchAsync(async (req, res, next) => {
     data: result,
   });
 });
+exports.deleteNotifyById = catchAsync(async (req, res, next) => {
+  const { id } = req.body;
+  if (!id) {
+    return next(new AppError("Vui lòng nhập đầy đủ thông tin", 404));
+  }
+
+  const result = await Notify.findOneAndDelete({
+    _id: id,
+    user_receive: req.user._id,
+  });
+
+  return res.status(200).json({
+    status: "success",
+    data: result,
+  });
+});
 exports.getUserNotifies = catchAsync(async (req, res, next) => {
   const { userID } = req.params;
   const page = req.query.page * 1 || 1;

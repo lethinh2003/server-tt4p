@@ -17,8 +17,13 @@ router.use("/notifies", notifyRouters);
 router.route("/admin").get(authController.protect, authController.reStrictTo("admin"), userController.getAllUsers);
 router.route("/admin").post(authController.protect, authController.reStrictTo("admin"), userController.updateUserAdmin);
 router.route("/").post(authController.protect, userController.getDetailUser);
+router.route("/:account").get(authController.protect, userController.getDetailUserByAccount);
 router.route("/update").post(authController.protect, userController.updateDetailUser);
 router.route("/follows").post(authController.protect, userController.followsUser);
+router.route("/delete-follows").post(authController.protect, userController.deleteFollowsUser);
+router.route("/get-all-posts/:userID").get(authController.protect, userController.getAllPostsByAccount);
+router.route("/get-all-followings/:userID").get(authController.protect, userController.getAllFollowingsByAccount);
+router.route("/get-all-followers/:userID").get(authController.protect, userController.getAllFollowersByAccount);
 router.route("/get-posts-count/:userID").get(authController.protect, userController.getPostsCount);
 router.route("/reset-password/:token").get(userController.checkTokenResetPassword);
 router.route("/reset-password/:token").post(userController.resetPassword);
@@ -32,6 +37,8 @@ router.route("/check-user-pending-in-room").post(authController.protect, userCon
 router.route("/check-partner-pending-in-room").post(authController.protect, userController.checkPartnerPendingInRoom);
 router.route("/restore-user-pending-in-room").get(authController.protect, userController.restoreUserPendingInRoom);
 router.route("/sign-up").post(userController.createUser);
+router.route("/login").post(userController.loginUser);
+router.route("/refresh-token").post(userController.refreshToken);
 router.route("/update-all").get(userController.updateAll);
 router.route("/create-avatar").get(userController.createAvatar);
 

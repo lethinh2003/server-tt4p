@@ -52,6 +52,29 @@ exports.getDetailPostComments = catchAsync(async (req, res, next) => {
     });
   }
 });
+exports.getDetailPostCommentsByAccount = catchAsync(async (req, res, next) => {
+  const { userID } = req.params;
+  const pageSize = req.query.pageSize * 1 || 5;
+  const page = req.query.page * 1 || 1;
+  const skip = (page - 1) * pageSize;
+  if (!userID) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+  let sortType = "-createdAt";
+
+  const getPostComments = await PostComment.find({
+    user: { $in: [userID] },
+  })
+    .skip(skip)
+    .limit(pageSize)
+    .sort(sortType);
+
+  return res.status(200).json({
+    status: "success",
+    results: getPostComments.length,
+    data: getPostComments,
+  });
+});
 exports.EditPostComment = catchAsync(async (req, res, next) => {
   const { commentId } = req.params;
   const { userId, content } = req.body;
