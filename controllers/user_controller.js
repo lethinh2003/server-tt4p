@@ -249,6 +249,25 @@ exports.getDetailUserByAccount = catchAsync(async (req, res, next) => {
     data: user,
   });
 });
+exports.getDetailUserAvatarByAccount = catchAsync(async (req, res, next) => {
+  const { account } = req.params;
+  if (!account) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+  const user = await User.findOne({ account: account })
+    .select("role status name account sex findSex createdAt following followers avatar partners messages avatarSVG")
+    .populate({
+      path: "avatarSVG",
+      select: "-__v -user -_id",
+    });
+  if (!user) {
+    return next(new AppError("Tài khoản không tồn tại", 404));
+  }
+  return res.status(200).json({
+    status: "success",
+    data: user.avatarSVG,
+  });
+});
 exports.checkActiveEmail = catchAsync(async (req, res, next) => {
   const { token } = req.params;
   const checkToken = await crypto.createHash("sha256").update(token).digest("hex");
@@ -456,8 +475,7 @@ exports.updateDetailUser = catchAsync(async (req, res, next) => {
 });
 exports.followsUser = catchAsync(async (req, res, next) => {
   const { userId } = req.body;
-  const listFollowings = req.user.following;
-  const checkIsFollowing = listFollowings.includes(userId);
+
   if (!userId || userId == req.user._id) {
     return next(new AppError("Vui lòng nhập user id", 404));
   }
@@ -490,7 +508,7 @@ exports.followsUser = catchAsync(async (req, res, next) => {
 });
 exports.deleteFollowsUser = catchAsync(async (req, res, next) => {
   const { userId } = req.body;
-  const listFollowings = req.user.following;
+
   if (!userId || userId == req.user._id) {
     return next(new AppError("Vui lòng nhập user id", 404));
   }
@@ -523,7 +541,7 @@ exports.suggestionFriends = catchAsync(async (req, res, next) => {
     // Again query all users but only fetch one offset by our random #
     User.find()
       .skip(random)
-      .limit(3)
+      .limit(limitRandomRecord)
       .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
       .populate({
         path: "avatarSVG",
@@ -537,6 +555,45 @@ exports.suggestionFriends = catchAsync(async (req, res, next) => {
           data: newResult,
         });
       });
+  });
+});
+exports.changeAvatar = catchAsync(async (req, res, next) => {
+  const { avatar } = req.body;
+
+  if (!avatar) {
+    return next(new AppError("Vui lòng nhập đầy đủ thông tin", 404));
+  }
+  await AvatarUser.findOneAndUpdate(
+    {
+      user: req.user._id,
+    },
+    {
+      accessory: avatar.accessory,
+      body: avatar.body,
+      circleColor: avatar.circleColor,
+      clothing: avatar.clothing,
+      clothingColor: avatar.clothingColor,
+      eyebrows: avatar.eyebrows,
+      eyes: avatar.eyes,
+      faceMask: avatar.faceMask,
+      faceMaskColor: avatar.faceMaskColor,
+      facialHair: avatar.facialHair,
+      graphic: avatar.graphic,
+      hair: avatar.hair,
+      hairColor: avatar.hairColor,
+      hat: avatar.hat,
+      hatColor: avatar.hatColor,
+      lashes: avatar.lashes,
+      lipColor: avatar.lipColor,
+      mask: avatar.mask,
+      mouth: avatar.mouth,
+      skinTone: avatar.skinTone,
+    }
+  );
+
+  return res.status(200).json({
+    status: "success",
+    message: "Thành công.",
   });
 });
 exports.activeEmail = catchAsync(async (req, res, next) => {
