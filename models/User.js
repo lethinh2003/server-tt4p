@@ -92,18 +92,6 @@ const userSchema = new mongoose.Schema(
       ref: "AvatarUser",
     },
 
-    followers: [
-      {
-        type: mongoose.Schema.ObjectId,
-        ref: "User",
-      },
-    ],
-    following: [
-      {
-        type: mongoose.Schema.ObjectId,
-        ref: "User",
-      },
-    ],
     refreshToken: String,
     accessToken: String,
 

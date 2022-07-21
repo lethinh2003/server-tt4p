@@ -18,6 +18,7 @@ router.route("/admin").get(authController.protect, authController.reStrictTo("ad
 router.route("/admin").post(authController.protect, authController.reStrictTo("admin"), userController.updateUserAdmin);
 router.route("/").post(authController.protect, userController.getDetailUser);
 router.route("/:account").get(authController.protect, userController.getDetailUserByAccount);
+router.route("/get-avatar/:account").get(authController.protect, userController.getDetailUserAvatarByAccount);
 router.route("/update").post(authController.protect, userController.updateDetailUser);
 router.route("/follows").post(authController.protect, userController.followsUser);
 router.route("/delete-follows").post(authController.protect, userController.deleteFollowsUser);
@@ -30,6 +31,7 @@ router.route("/reset-password/:token").post(userController.resetPassword);
 router.route("/missing-password").post(userController.missingPassword);
 router.route("/suggestion-friends/:userID").get(authController.protect, userController.suggestionFriends);
 router.route("/active-email/:token").get(userController.checkActiveEmail);
+router.route("/change-avatar").post(authController.protect, userController.changeAvatar);
 router.route("/active-email").post(authController.protect, userController.activeEmail);
 router.route("/check-user").post(userController.checkUser);
 router.route("/check-in-room").post(authController.protect, userController.checkUserInRoom);
