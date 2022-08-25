@@ -50,7 +50,12 @@ global._io.use(async (socket, next) => {
         throw new Error("Login to continute");
       }
       const decode = jwt.verify(token, process.env.JWT_SECRET_KEY);
-      const user = await User.findOne({ _id: decode.id });
+      const user = await User.findOne({ _id: decode.id })
+        .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
+        .populate({
+          path: "avatarSVG",
+          select: "-__v -user -_id",
+        });
       socket.userIO = user;
       const checkUsersOnline = global._usersOnline.filter((item) => item.account === user.account);
       console.log("check user", checkUsersOnline);

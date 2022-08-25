@@ -100,7 +100,7 @@ exports.getDetailPostBySlug = catchAsync(async (req, res, next) => {
   }
 
   const getPost = await Post.findOne({
-    slug: slug,
+    _id: slug,
   })
     .populate({
       path: "user",
@@ -132,8 +132,9 @@ exports.getDetailPostActivity = catchAsync(async (req, res, next) => {
 
   const getPostActivity = await PostActivity.find({
     user: { $in: [req.user.id] },
-  }).sort({ _id: 1 });
+  }).sort({ _id: -1 });
 
+  console.log(getPostActivity);
   return res.status(200).json({
     status: "success",
     data: getPostActivity,

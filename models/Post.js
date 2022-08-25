@@ -86,5 +86,19 @@ postSchema.methods.updateCommentsCount = function () {
   this.comments_count = this.comments.length;
 };
 
+postSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: "user",
+    select:
+      "-__v -password -resetPasswordToken -resetPasswordTokenExpires -role -updatedPasswordAt -findSex -emailActiveTokenExpires -emailActiveToken -email -city -bio -active_email -date",
+    populate: {
+      path: "avatarSVG",
+      model: "AvatarUser",
+      select: "-user",
+    },
+  });
+
+  next();
+});
 const Post = mongoose.models.Post || mongoose.model("Post", postSchema);
 module.exports = Post;
