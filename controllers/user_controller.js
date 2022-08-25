@@ -352,6 +352,30 @@ exports.getAllPostsByAccount = catchAsync(async (req, res, next) => {
     results: posts.length,
   });
 });
+exports.getAllActivitiesByAccount = catchAsync(async (req, res, next) => {
+  const { userID } = req.params;
+
+  const pageSize = req.query.pageSize * 1 || 5;
+  const page = req.query.page * 1 || 1;
+  const skip = (page - 1) * pageSize;
+  let sortType = "-createdAt";
+  if (!userID) {
+    return next(new AppError("Vui lòng nhập đầy đủ thông tin", 404));
+  }
+  let posts;
+
+  posts = PostActivity.find({
+    user: { $in: [userID] },
+  });
+
+  posts = posts.skip(skip).limit(pageSize).sort(sortType);
+  posts = await posts;
+  return res.status(200).json({
+    status: "success",
+    data: posts,
+    results: posts.length,
+  });
+});
 exports.getAllFollowingsByAccount = catchAsync(async (req, res, next) => {
   const { userID } = req.params;
   const pageSize = req.query.pageSize * 1 || 5;

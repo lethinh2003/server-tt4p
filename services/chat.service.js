@@ -58,7 +58,7 @@ class SocketServices {
       }
     });
 
-    socket.on("find-partner-random", async () => {
+    socket.on("find-partner-random", async (user) => {
       const currentUser = socket.userIO;
       const dataFindPartner = findPartnerRandom(currentUser);
       //send message find partner for current user

@@ -23,6 +23,7 @@ router.route("/update").post(authController.protect, userController.updateDetail
 router.route("/follows").post(authController.protect, userController.followsUser);
 router.route("/delete-follows").post(authController.protect, userController.deleteFollowsUser);
 router.route("/get-all-posts/:userID").get(authController.protect, userController.getAllPostsByAccount);
+router.route("/get-all-activities/:userID").get(authController.protect, userController.getAllActivitiesByAccount);
 router.route("/get-all-followings/:userID").get(authController.protect, userController.getAllFollowingsByAccount);
 router.route("/get-all-followers/:userID").get(authController.protect, userController.getAllFollowersByAccount);
 router.route("/get-posts-count/:userID").get(authController.protect, userController.getPostsCount);
