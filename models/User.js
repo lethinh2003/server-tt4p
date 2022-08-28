@@ -91,6 +91,12 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "AvatarUser",
     },
+    chatRandom: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "HistoryChatRoomRandom",
+      },
+    ],
 
     refreshToken: String,
     accessToken: String,

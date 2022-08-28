@@ -1,5 +1,8 @@
 const ChatRoom = require("../models/ChatRoom");
+const ChatRoomRandom = require("../models/ChatRoomRandom");
+const HistoryChatRoomRandom = require("../models/HistoryChatRoomRandom");
 const Message = require("../models/Message");
+const MessageRoomRandom = require("../models/MessageRoomRandom");
 const PostComment = require("../models/PostComment");
 const Notify = require("../models/Notify");
 const User = require("../models/User");
@@ -32,21 +35,32 @@ class SocketServices {
             path: "avatarSVG",
             select: "-__v -user -_id",
           });
-        const userJoinRooms = joinListUsersRandom(updateUser);
-        console.log(userJoinRooms);
+        const userJoinRooms = await joinListUsersRandom(updateUser);
+
         if (userJoinRooms) {
-          socket.userStatus = "waiting";
-          socket.chatAPPUser = userJoinRooms;
+          const dataSocket = {
+            userStatus: "waiting",
+            user: userJoinRooms,
+            userIO: userJoinRooms,
+            room: null,
+            partner: null,
+            partnerIO: null,
+          };
+          socket.chatRandom = dataSocket;
           socket.join(user.account);
-          await ChatRoom.create({
-            account: socket.chatAPPUser.account,
-            status: "waiting",
-          });
+          console.log("JOIN", socket.chatRandom);
+          await ChatRoomRandom.findOneAndUpdate(
+            {
+              account: socket.chatRandom.user._id,
+            },
+            {
+              status: "waiting",
+            }
+          );
         }
         //update user in room
         const getUsersWaitingData = getUsersWaitingRandom();
         _io.emit("update-users-waiting-room-random", getUsersWaitingData);
-
         console.log("ROOM AFTER JOIN LIST USERS", _io.sockets.adapter.rooms);
         callback({
           status: "ok",
@@ -58,97 +72,150 @@ class SocketServices {
       }
     });
 
-    socket.on("find-partner-random", async (user) => {
-      const currentUser = socket.userIO;
+    socket.on("find-partner-random", async () => {
+      const currentUser = socket.chatRandom.userIO;
       const dataFindPartner = findPartnerRandom(currentUser);
-      //send message find partner for current user
-      _io.sockets.in(currentUser.account).emit("find-partner-random", dataFindPartner);
-      //find partner success
-      if (dataFindPartner.status === "success") {
-        socket.userStatus = "chatting";
-        socket.chatAPPUserPartner = dataFindPartner.partner;
-        socket.partnerIO = dataFindPartner.partner;
-        const roomGeneral = `${socket.chatAPPUser.account}-${process.env.GENERAL_KEY_CHAT}-${dataFindPartner.partner.account}`;
-        //Convert status from waiting to chatting
-        await Promise.all([
-          ChatRoom.findOneAndUpdate(
-            {
-              account: socket.chatAPPUser.account,
-            },
-            {
-              status: "chatting",
-              partner: socket.chatAPPUserPartner.account,
-              room: roomGeneral,
-            }
-          ),
-          ChatRoom.findOneAndUpdate(
-            {
-              account: socket.chatAPPUserPartner.account,
-            },
-            {
-              status: "chatting",
-              partner: socket.chatAPPUser.account,
-              room: roomGeneral,
-            }
-          ),
-          User.findOneAndUpdate(
-            {
-              account: socket.chatAPPUser.account,
-            },
-            {
-              $inc: { partners: 1 },
-            }
-          ),
-          User.findOneAndUpdate(
-            {
-              account: socket.chatAPPUserPartner.account,
-            },
-            {
-              $inc: { partners: 1 },
-            }
-          ),
-        ]);
-        //update user in room
-        const getUsersWaitingData = getUsersWaitingRandom();
-        _io.emit("update-users-waiting-room-random", getUsersWaitingData);
-        // create and join room both 2 users:
-        socket.join(roomGeneral);
-        socket.roomRandom = roomGeneral;
-        //send auto request join room for partner
-        _io.sockets
-          .in(socket.chatAPPUserPartner.account)
-          .emit("auto-join-room-for-partner-random", { partner: dataFindPartner.user });
-        //send info current user for partner
-        _io.sockets
-          .in(socket.chatAPPUserPartner.account)
-          .emit("find-partner-success-random", { partner: dataFindPartner.user, message: dataFindPartner.message });
-        //send info partner for current user
-        _io.sockets
-          .in(socket.chatAPPUser.account)
-          .emit("find-partner-success-random", { partner: dataFindPartner.partner, message: dataFindPartner.message });
+      console.log("FIND", dataFindPartner);
+      if (dataFindPartner) {
+        //send message find partner for current user
+        _io.sockets.in(currentUser.account).emit("find-partner-random", dataFindPartner);
+        //find partner success
+        if (dataFindPartner.status === "success") {
+          const updateDatabase = await Promise.all([
+            ChatRoomRandom.updateOne(
+              {
+                account: dataFindPartner.user._id,
+              },
+              {
+                partner: dataFindPartner.partner._id,
+                room: dataFindPartner.room,
+                status: "chatting",
+              }
+            ),
+            ChatRoomRandom.updateOne(
+              {
+                account: dataFindPartner.partner._id,
+              },
+              {
+                partner: dataFindPartner.user._id,
+                room: dataFindPartner.room,
+                status: "chatting",
+              }
+            ),
+            HistoryChatRoomRandom.create({
+              account: dataFindPartner.user._id,
+              partner: dataFindPartner.partner._id,
+              room: dataFindPartner.room,
+            }),
+            HistoryChatRoomRandom.create({
+              account: dataFindPartner.partner._id,
+              partner: dataFindPartner.user._id,
+              room: dataFindPartner.room,
+            }),
+          ]);
+          await Promise.all([
+            User.updateOne(
+              {
+                account: dataFindPartner.user.account,
+              },
+              {
+                $push: { chatRandom: updateDatabase[2]._id },
+              }
+            ),
+            User.updateOne(
+              {
+                account: dataFindPartner.partner.account,
+              },
+              {
+                $push: { chatRandom: updateDatabase[3]._id },
+              }
+            ),
+          ]);
+
+          const getPartner = await User.findOne({
+            account: dataFindPartner.partner.account,
+          })
+            .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
+            .populate({
+              path: "avatarSVG",
+              select: "-__v -user -_id",
+            });
+          socket.chatRandom.userStatus = "chatting";
+          socket.chatRandom.partner = getPartner;
+          socket.chatRandom.partnerIO = getPartner;
+          socket.chatRandom.room = dataFindPartner.room;
+
+          await Promise.all([
+            User.findOneAndUpdate(
+              {
+                account: dataFindPartner.user.account,
+              },
+              {
+                $inc: { partners: 1 },
+              }
+            ),
+            User.findOneAndUpdate(
+              {
+                account: dataFindPartner.partner.account,
+              },
+              {
+                $inc: { partners: 1 },
+              }
+            ),
+          ]);
+
+          //update user in room
+          const getUsersWaitingData = getUsersWaitingRandom();
+          _io.emit("update-users-waiting-room-random", getUsersWaitingData);
+          // create and join room both 2 users:
+          socket.join(dataFindPartner.room);
+          //send auto request join room for partner
+          _io.sockets.in(dataFindPartner.partner.account).emit("auto-join-room-for-partner-random", {
+            partner: socket.chatRandom.user,
+            room: socket.chatRandom.room,
+          });
+          //send info current user for partner
+          _io.sockets
+            .in(dataFindPartner.partner.account)
+            .emit("find-partner-success-random", { partner: socket.chatRandom.user, message: dataFindPartner.message });
+          //send info partner for current user
+          _io.sockets.in(dataFindPartner.user.account).emit("find-partner-success-random", {
+            partner: socket.chatRandom.partner,
+            message: dataFindPartner.message,
+          });
+        }
       }
     });
     //AUTO JOIN ROOM FOR PARTNER
-    socket.on("auto-join-room-for-partner-random", (partner) => {
-      const roomGeneral = `${partner.account}-${process.env.GENERAL_KEY_CHAT}-${socket.chatAPPUser.account}`;
-      socket.join(roomGeneral);
-      socket.userStatus = "chatting";
-      socket.chatAPPUserPartner = partner;
-
-      socket.roomRandom = roomGeneral;
+    socket.on("auto-join-room-for-partner-random", (data) => {
+      if (data) {
+        socket.chatRandom.userStatus = "chatting";
+        socket.chatRandom.partner = data.partner;
+        socket.chatRandom.partnerIO = data.partner;
+        socket.chatRandom.room = data.room;
+        socket.join(data.room);
+      }
       console.log("ROOM AFTER FIND PARTNER SUCCESS", _io.sockets.adapter.rooms);
     });
-
+    socket.on("update-users-chat-room-random", () => {
+      const getUsersWaitingData = getUsersWaitingRandom();
+      _io.emit("update-users-waiting-room-random", getUsersWaitingData);
+    });
     //OUT WAITING ROOM
     socket.on("out-waiting-room-random", async (callback) => {
-      await ChatRoom.deleteOne({
-        account: socket.chatAPPUser.account,
-        status: "waiting",
-      });
-      socket.userStatus = null;
-      removeUserRandom(socket.chatAPPUser);
-      socket.leave(socket.chatAPPUser.account);
-      socket.chatAPPUser = null;
+      await ChatRoomRandom.findOneAndUpdate(
+        {
+          account: socket.chatRandom.user._id,
+        },
+        {
+          status: null,
+        }
+      );
+      socket.chatRandom.userStatus = null;
+      removeUserRandom(socket.chatRandom.user);
+      socket.leave(socket.chatRandom.user.account);
+      socket.chatRandom.user = null;
+      socket.chatRandom.userIO = null;
       console.log("ROOM AFTER OUT WAITING ROOM:", _io.sockets.adapter.rooms);
       //update users in room
       const getUsersWaitingData = getUsersWaitingRandom();
@@ -158,258 +225,67 @@ class SocketServices {
         status: "ok",
       });
     });
-    //RESTORE SUCCESS
-    socket.on("success-restore-for-partner", async ({ partner, roomGeneral }, callback) => {
-      try {
-        const user = socket.userIO;
-        const userJoinRooms = joinListUsersRandom(user);
-        if (userJoinRooms) {
-          socket.userStatus = "chatting";
-          socket.chatAPPUser = userJoinRooms;
-          socket.chatAPPUserPartner = partner;
-          socket.join(user.account);
-          socket.roomRandom = roomGeneral;
-          joinListUsersChatting(socket.chatAPPUser);
-        }
-        console.log("ROOM AFTER RESTORE SUCCESS:", _io.sockets.adapter.rooms);
-        callback({
-          status: "ok",
-        });
-      } catch (err) {
-        callback({
-          status: "err",
-        });
-      }
+    //OUT WAITING ROOM
+    socket.on("out-waiting-room-random-server", async () => {
+      socket.chatRandom.userStatus = null;
+      removeUserRandom(socket.chatRandom.user);
+      socket.leave(socket.chatRandom.user.account);
+      socket.chatRandom.user = null;
+      socket.chatRandom.userIO = null;
+      console.log("ROOM AFTER OUT WAITING ROOM:", _io.sockets.adapter.rooms);
+      //update users in room
+      const getUsersWaitingData = getUsersWaitingRandom();
+      _io.emit("update-users-waiting-room-random", getUsersWaitingData);
     });
-
-    //RESTORE DATA CHAT ROOM FOR USER RE-CONNECT
-    socket.on(
-      "restore-data-chat-room-for-user-reconnect",
-      async ({ user: userReq, partner, room: roomGeneral }, callback) => {
-        try {
-          const user = socket.userIO;
-          const userJoinRooms = joinListUsersRandom(user);
-          if (userJoinRooms) {
-            socket.chatAPPUser = userJoinRooms;
-            socket.join(user.account);
-            socket.userStatus = "waiting";
-            socket.roomRandom = roomGeneral;
-
-            const checkPartnerIsWaiting = await ChatRoom.findOne({
-              account: partner,
-              partner: socket.chatAPPUser.account,
-              status: "partner-disconnected",
-            });
-            if (checkPartnerIsWaiting) {
-              const getMessages = await Message.find({
-                room: roomGeneral,
-              })
-                .populate({
-                  path: "from",
-                  select: "-__v",
-                })
-                .populate({
-                  path: "to",
-                  select: "-__v",
-                });
-              const getPartner = await User.findOne({
-                account: partner,
-              })
-                .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
-                .populate({
-                  path: "avatarSVG",
-                  select: "-__v -user -_id",
-                });
-              socket.chatAPPUserPartner = getPartner;
-              socket.roomRandom = roomGeneral;
-              socket.join(roomGeneral);
-              socket.userStatus = "chatting";
-              joinListUsersChatting(socket.chatAPPUser);
-              _io.sockets
-                .in(socket.chatAPPUser.account)
-                .emit("success-restore", { msg: "Khôi phục thành công", partner: getPartner });
-              _io.sockets.in(socket.chatAPPUser.account).emit("success-restore-message", getMessages);
-              await Promise.all([
-                ChatRoom.findOneAndUpdate(
-                  {
-                    account: socket.chatAPPUser.account,
-                    room: roomGeneral,
-                  },
-                  {
-                    status: "chatting",
-                  }
-                ),
-                ChatRoom.findOneAndUpdate(
-                  {
-                    account: socket.chatAPPUserPartner.account,
-                    room: roomGeneral,
-                  },
-                  {
-                    status: "chatting",
-                  }
-                ),
-              ]);
-              _io.sockets.in(socket.chatAPPUserPartner.account).emit("success-restore-for-partner", {
-                msg: "Đối phương đã kết nối lại thành công",
-                partner: socket.chatAPPUser,
-                roomGeneral,
-              });
-            } else {
-              console.log("THẰNG PARTNER NÓ OUT CMNR");
-              _io.sockets.in(socket.chatAPPUser.account).emit("reject-restore", "THẰNG PARTNER NÓ OUT CMNR");
-              await Promise.all([
-                ChatRoom.findOneAndDelete({
-                  account: socket.chatAPPUser.account,
-                  partner: partner,
-                }),
-                Message.deleteMany({
-                  room: roomGeneral,
-                }),
-              ]);
-              removeUserRandom(socket.chatAPPUser);
-              socket.leave(socket.chatAPPUser.account);
-              socket.leave(socket.roomRandom);
-              socket.chatAPPUser = null;
-              socket.chatAPPUserPartner = null;
-              socket.roomRandom = null;
-              socket.userStatus = null;
-            }
-
-            console.log("ROOM AFTER RESTORE DATA:", _io.sockets.adapter.rooms);
-          }
-          callback({
-            status: "ok",
-          });
-        } catch (err) {
-          callback({
-            status: "err",
-          });
-        }
-      }
-    );
-    //RESTORE DATA CHAT ROOM FOR USER CHATTING
-    socket.on(
-      "restore-data-chat-room-for-user-chatting",
-      async ({ user: userReq, partner, room: roomGeneral }, callback) => {
-        try {
-          const user = socket.userIO;
-          //JOIN LIST WAITTING USERS
-          const userJoinRooms = joinListUsersRandom(user);
-
-          socket.chatAPPUser = user;
-          socket.join(user.account);
-          socket.userStatus = "waiting";
-          socket.roomRandom = roomGeneral;
-          const checkPartnerIsWaiting = await ChatRoom.findOne({
-            account: partner,
-            partner: socket.chatAPPUser.account,
-            status: "chatting",
-          });
-          console.log("RESULT FIND", partner, socket.chatAPPUser.account, checkPartnerIsWaiting);
-          if (checkPartnerIsWaiting) {
-            const getMessages = await Message.find({
-              room: roomGeneral,
-            })
-              .populate({
-                path: "from",
-                select: "-__v",
-              })
-              .populate({
-                path: "to",
-                select: "-__v",
-              });
-            console.log("messages", getMessages);
-            const getPartner = await User.findOne({
-              account: partner,
-            })
-              .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
-              .populate({
-                path: "avatarSVG",
-                select: "-__v -user -_id",
-              });
-            socket.chatAPPUserPartner = getPartner;
-            socket.join(roomGeneral);
-            socket.userStatus = "chatting";
-            joinListUsersChatting(socket.chatAPPUser);
-            _io.sockets
-              .in(socket.chatAPPUser.account)
-              .emit("success-restore", { msg: "Khôi phục thành công", partner: getPartner });
-            _io.sockets.in(socket.chatAPPUser.account).emit("success-restore-message", getMessages);
-
-            _io.sockets.in(socket.chatAPPUserPartner.account).emit("success-restore-for-partner", {
-              msg: "Đối phương đã kết nối lại thành công",
-              partner: socket.chatAPPUser,
-              roomGeneral,
-            });
-          } else {
-            console.log("THẰNG PARTNER NÓ OUT CMNR");
-            _io.sockets.in(socket.chatAPPUser.account).emit("reject-restore", "THẰNG PARTNER NÓ OUT CMNR");
-            await Promise.all([
-              ChatRoom.findOneAndDelete({
-                account: socket.chatAPPUser.account,
-                partner: partner,
-              }),
-              Message.deleteMany({
-                room: roomGeneral,
-              }),
-            ]);
-            removeUserRandom(socket.chatAPPUser);
-            socket.leave(socket.chatAPPUser.account);
-            socket.leave(socket.roomRandom);
-            socket.chatAPPUser = null;
-            socket.chatAPPUserPartner = null;
-            socket.roomRandom = null;
-            socket.userStatus = null;
-          }
-
-          console.log("ROOM AFTER RESTORE DATA:", _io.sockets.adapter.rooms);
-          callback({
-            status: "ok",
-          });
-        } catch (err) {
-          callback({
-            status: "err",
-          });
-        }
-      }
-    );
 
     //OUT CHATTING ROOM
     socket.on("out-chat-room-for-current-user", async (callback) => {
       try {
         await Promise.all([
-          ChatRoom.findOneAndDelete({
-            account: socket.chatAPPUser.account,
-            partner: socket.chatAPPUserPartner.account,
-          }),
-          ChatRoom.findOneAndUpdate(
+          ChatRoomRandom.updateOne(
             {
-              account: socket.chatAPPUserPartner.account,
-              partner: socket.chatAPPUser.account,
+              account: socket.chatRandom.user._id,
             },
             {
-              status: "partner-outed-chat",
+              room: null,
+              partner: null,
+              status: null,
+            }
+          ),
+          ChatRoomRandom.updateOne(
+            {
+              account: socket.chatRandom.partner._id,
+            },
+            {
+              room: null,
+              partner: null,
+              status: null,
             }
           ),
         ]);
-
+        console.log("OUT", socket.chatRandom);
         _io.sockets
-          .in(socket.chatAPPUserPartner.account)
+          .in(socket.chatRandom.partner.account)
           .emit("send-noti-partner-out-chat-room", "Đối phương đã rời khỏi phòng chat");
 
         //IF HAVE MANY BROWERS USING ACCOUNT USER
         _io.sockets
-          .in(socket.chatAPPUser.account)
+          .in(socket.chatRandom.user.account)
           .emit("send-noti-current-user-out-chat-room", "Đối phương đã rời khỏi phòng chat");
         //remove users from list users in room
-        removeUserRandom(socket.chatAPPUser);
-        socket.leave(socket.chatAPPUser.account);
-        socket.leave(socket.roomRandom);
-        socket.chatAPPUser = null;
-        socket.userStatus = null;
-        socket.chatAPPUserPartner = null;
-        socket.roomRandom = null;
+        removeUserRandom(socket.chatRandom.user);
+        socket.leave(socket.chatRandom.user.account);
+        socket.leave(socket.chatRandom.room);
+        socket.chatRandom.user = null;
+        socket.chatRandom.userIO = null;
+        socket.chatRandom.partner = null;
+        socket.chatRandom.partnerIO = null;
+        socket.chatRandom.userStatus = null;
+        socket.chatRandom.room = null;
         console.log("ROOM AFTER PARTNER OUT CHAT ROOM:", _io.sockets.adapter.rooms);
+        //update users in room
+        const getUsersWaitingData = getUsersWaitingRandom();
+        _io.emit("update-users-waiting-room-random", getUsersWaitingData);
         callback({
           status: "ok",
         });
@@ -421,177 +297,59 @@ class SocketServices {
     });
     //OUT CHATTING ROOM FOR PARTNER
     socket.on("send-noti-partner-out-chat-room", async () => {
-      // await ChatRoom.findOneAndDelete({
-      //   account: socket.chatAPPUser.account,
-      //   partner: socket.chatAPPUserPartner.account,
-      // });
-      //remove users from list users in room
-      socket.userStatus = "partner-outed-chat";
+      removeUserRandom(socket.chatRandom.user);
+      socket.leave(socket.chatRandom.user.account);
+      socket.leave(socket.chatRandom.room);
+      socket.chatRandom.user = null;
+      socket.chatRandom.userIO = null;
+      socket.chatRandom.partner = null;
+      socket.chatRandom.partnerIO = null;
+      socket.chatRandom.userStatus = null;
+      socket.chatRandom.room = null;
       console.log("ROOM AFTER PARTNER PARTNER RECEIVE NOTI USER OUT CHATROOM:", _io.sockets.adapter.rooms);
+      //update users in room
+      const getUsersWaitingData = getUsersWaitingRandom();
+      _io.emit("update-users-waiting-room-random", getUsersWaitingData);
     });
     //UPDATE STATUS FOR USER
     socket.on("update-status-user", ({ room, status }) => {
-      console.log("ROOM:", _io.sockets.adapter.rooms);
-
-      console.log(room);
       _io.sockets.in(room).emit("update-status-user", status);
     });
-    //AGREE OUT CHATTING ROOM
-    socket.on("agree-out-chat-room-for-current-user", async (callback) => {
-      try {
-        await Promise.all([
-          ChatRoom.findOneAndDelete({
-            account: socket.chatAPPUser.account,
-            partner: socket.chatAPPUserPartner.account,
-          }),
-          Message.deleteMany({
-            room: socket.roomRandom,
-          }),
-        ]);
-        //remove users from list users in room
-        removeUserRandom(socket.chatAPPUser);
-        socket.leave(socket.chatAPPUser.account);
-        socket.leave(socket.roomRandom);
-        socket.chatAPPUser = null;
-        socket.chatAPPUserPartner = null;
-        socket.roomRandom = null;
-        socket.userStatus = null;
-        console.log("ROOM AFTER PARTNER AGREE OUT CHAT ROOM:", _io.sockets.adapter.rooms);
-        callback({
-          status: "ok",
-        });
-      } catch (err) {
-        callback({
-          status: "err",
-        });
-      }
-    });
-    //AGREE OUT CHATTING ROOM DON'T WAIT PARTNER
-    socket.on("agree-out-chat-room-dont-wait-partner", async (callback) => {
-      try {
-        await Promise.all([
-          ChatRoom.findOneAndDelete({
-            account: socket.chatAPPUser.account,
-            partner: socket.chatAPPUserPartner.account,
-          }),
-        ]);
-        //remove users from list users in room
-        removeUserRandom(socket.chatAPPUser);
-        socket.leave(socket.chatAPPUser.account);
-        socket.leave(socket.roomRandom);
-        socket.chatAPPUser = null;
-        socket.chatAPPUserPartner = null;
-        socket.roomRandom = null;
-        socket.userStatus = null;
-        console.log("ROOM AFTER PARTNER AGREE OUT CHAT ROOM DONT WAIT PARTNER:", _io.sockets.adapter.rooms);
-        callback({
-          status: "ok",
-        });
-      } catch (err) {
-        callback({
-          status: "err",
-        });
-      }
-    });
-    socket.on("delete-unmounted-chat", async (callback) => {
-      try {
-        console.log(socket.userStatus);
-        if (
-          socket.userStatus === "partner-outed-chat" &&
-          socket.chatAPPUser &&
-          socket.roomRandom &&
-          socket.chatAPPUserPartner
-        ) {
-          await Promise.all([
-            ChatRoom.findOneAndDelete({
-              account: socket.chatAPPUser.account,
-              status: "partner-outed-chat",
-            }),
-            Message.deleteMany({
-              room: socket.roomRandom,
-            }),
-          ]);
-          removeUserRandom(socket.chatAPPUser);
-          socket.leave(socket.chatAPPUser.account);
-          socket.leave(socket.roomRandom);
-          socket.chatAPPUser = null;
-          socket.chatAPPUserPartner = null;
-          socket.roomRandom = null;
-          socket.userStatus = null;
-          console.log("DISCONNECTING STATUS: PARTNER-OUT-CHAT HIHI", _io.sockets.adapter.rooms);
-        } else if (socket.userStatus === "waiting" && socket.chatAPPUser) {
-          await ChatRoom.findOneAndDelete({
-            account: socket.chatAPPUser.account,
-            status: "waiting",
-          });
-          removeUserRandom(socket.chatAPPUser);
-          socket.leave(socket.chatAPPUser.account);
-          socket.chatAPPUser = null;
-          socket.userStatus = null;
-          console.log("ROOM AFTER USER DISCONNECTING:", _io.sockets.adapter.rooms);
-        } else if (
-          socket.userStatus === "partner-disconnected" &&
-          socket.chatAPPUser &&
-          socket.roomRandom &&
-          socket.chatAPPUserPartner
-        ) {
-          await Promise.all([
-            ChatRoom.deleteMany({
-              room: socket.roomRandom,
-            }),
-            Message.deleteMany({
-              room: socket.roomRandom,
-            }),
-          ]);
-          removeUserRandom(socket.chatAPPUser);
-          socket.leave(socket.chatAPPUser.account);
-          socket.chatAPPUser = null;
-          socket.chatAPPUserPartner = null;
-          socket.roomRandom = null;
-          socket.leave(socket.roomRandom);
-          socket.userStatus = null;
-          console.log("DISCONNECTING STATUS: PARTNER-DISCONNECTED", _io.sockets.adapter.rooms);
-        }
-        callback({
-          status: "ok",
-        });
-      } catch (err) {
-        callback({
-          status: "error",
-        });
-      }
-    });
-    //AGREE OUT CHATTING ROOM DON'T WAIT PARTNER
+
     socket.on("send-noti-partner-disconnected", () => {
-      socket.userStatus = "partner-disconnected";
+      removeUserRandom(socket.chatRandom.user);
+      socket.leave(socket.chatRandom.user.account);
+      socket.leave(socket.chatRandom.room);
+      socket.chatRandom.user = null;
+      socket.chatRandom.userIO = null;
+      socket.chatRandom.partner = null;
+      socket.chatRandom.partnerIO = null;
+      socket.chatRandom.userStatus = null;
+      socket.chatRandom.room = null;
+      console.log("ROOM AFTER PARTNER PARTNER RECEIVE NOTI USER OUT CHATROOM:", _io.sockets.adapter.rooms);
     });
 
     socket.on("send-chat-content", async (message, callback) => {
       try {
         const newMessage = {
-          from: socket.chatAPPUser,
-          to: socket.chatAPPUserPartner,
+          from: socket.chatRandom.user,
+          to: socket.chatRandom.partner,
           msg: message,
-          account: socket.chatAPPUser.account,
-          name: socket.chatAPPUser.name,
+          account: socket.chatRandom.user.account,
+          name: socket.chatRandom.user.name,
           message: message,
-          sex: socket.chatAPPUser.sex,
+          sex: socket.chatRandom.user.sex,
         };
-
-        const roomGeneral1 = `${socket.chatAPPUser.account}-${process.env.GENERAL_KEY_CHAT}-${socket.chatAPPUserPartner.account}`;
-        const roomGeneral2 = `${socket.chatAPPUserPartner.account}-${process.env.GENERAL_KEY_CHAT}-${socket.chatAPPUser.account}`;
-
-        const createMessage = await Message.create({
-          from: socket.chatAPPUser._id,
-          to: socket.chatAPPUserPartner._id,
-          // room: _io.sockets.adapter.rooms.get(roomGeneral1) ? roomGeneral1 : roomGeneral2,
-          room: socket.roomRandom,
+        const createMessage = await MessageRoomRandom.create({
+          from: socket.chatRandom.user._id,
+          to: socket.chatRandom.partner._id,
+          room: socket.chatRandom.room,
           msg: message,
         });
         await Promise.all([
           User.findOneAndUpdate(
             {
-              account: socket.chatAPPUser.account,
+              account: socket.chatRandom.user.account,
             },
             {
               $inc: { messages: 1 },
@@ -605,10 +363,10 @@ class SocketServices {
           updatedAt: createMessage.updatedAt,
         };
 
-        const currentRoom = socket.roomRandom || socket.roomRandomVip;
+        const currentRoom = socket.chatRandom.room;
         _io.sockets.to(currentRoom).emit("receive-chat-content", sendMessage);
         //send sound notify
-        _io.sockets.in(socket.chatAPPUserPartner.account).emit("receive-chat-sound");
+        _io.sockets.in(socket.chatRandom.partner.account).emit("receive-chat-sound");
         callback({
           status: "ok",
         });
@@ -619,18 +377,12 @@ class SocketServices {
       }
     });
     socket.on("chat-typing", (data) => {
-      const currentRoom1 = `${socket.chatAPPUserPartner.account}-${process.env.GENERAL_KEY_CHAT}-${socket.chatAPPUser.account}`;
-      const currentRoom2 = `${socket.chatAPPUser.account}-${process.env.GENERAL_KEY_CHAT}-${socket.chatAPPUserPartner.account}`;
       if (data === true) {
         const mes = { status: true, message: "Đối phương đang nhập ..." };
-        //Send room1 or room2, except sender
-        socket.to(currentRoom1).emit("chat-typing", mes);
-        socket.to(currentRoom2).emit("chat-typing", mes);
+        socket.to(socket.chatRandom.room).emit("chat-typing", mes);
       } else {
         const mes = { status: false, message: "Đối phương đã huỷ nhập" };
-        //Send room1 or room2, except sender
-        socket.to(currentRoom1).emit("chat-typing", mes);
-        socket.to(currentRoom2).emit("chat-typing", mes);
+        socket.to(socket.chatRandom.room).emit("chat-typing", mes);
       }
     });
     socket.on("banned-account", ({ account, status }) => {
@@ -756,8 +508,10 @@ class SocketServices {
         _io.sockets.emit("users-online", _usersOnline);
       }
     });
+
     //SOCKET DISCONNECTING
     socket.on("disconnecting", async () => {
+      //update users online
       if (socket.userIO) {
         const getIndexListUsersOnline = () => {
           let index = -1;
@@ -770,89 +524,63 @@ class SocketServices {
           return index;
         };
         const indexUsersOnline = getIndexListUsersOnline();
-        console.log("getIndexListUsers", indexUsersOnline);
         if (indexUsersOnline != -1) {
           _usersOnline.splice(indexUsersOnline, 1);
-          console.log("USERS ONLINE", _usersOnline);
-
           _io.sockets.emit("users-online", _usersOnline);
         }
       }
-      if (!socket.roomRandom) {
-        if (socket.chatAPPUser && socket.userStatus === "waiting") {
-          await ChatRoom.findOneAndDelete({
-            account: socket.chatAPPUser.account,
-            status: "waiting",
-          });
-          removeUserRandom(socket.chatAPPUser);
-          socket.leave(socket.chatAPPUser.account);
-          socket.chatAPPUser = null;
-          console.log("ROOM AFTER USER DISCONNECTING:", _io.sockets.adapter.rooms);
+      //close window when in waiting room
+      if (socket.chatRandom && !socket.chatRandom.room) {
+        if (socket.chatRandom.user && socket.chatRandom.userStatus === "waiting") {
+          await ChatRoomRandom.findOneAndUpdate(
+            {
+              account: socket.chatRandom.user._id,
+            },
+            {
+              status: null,
+            }
+          );
+          removeUserRandom(socket.chatRandom.user);
+          socket.chatRandom.user = null;
+          socket.chatRandom.userIO = null;
+          socket.chatRandom.userStatus = null;
         }
-      } else {
-        if (socket.userStatus === "partner-outed-chat") {
+      } else if (socket.chatRandom && socket.chatRandom.room) {
+        //close window when chatting
+        if (socket.chatRandom.user && socket.chatRandom.partner && socket.chatRandom.userStatus === "chatting") {
           await Promise.all([
-            ChatRoom.findOneAndDelete({
-              account: socket.chatAPPUser.account,
-              status: "partner-outed-chat",
-            }),
-            Message.deleteMany({
-              room: socket.roomRandom,
-            }),
-          ]);
-          removeUserRandom(socket.chatAPPUser);
-          socket.leave(socket.chatAPPUser.account);
-          socket.chatAPPUser = null;
-          socket.chatAPPUserPartner = null;
-          socket.roomRandom = null;
-          socket.leave(socket.roomRandom);
-          console.log("DISCONNECTING STATUS: PARTNER-OUT-CHAT", _io.sockets.adapter.rooms);
-        } else if (socket.userStatus === "partner-disconnected") {
-          await Promise.all([
-            ChatRoom.deleteMany({
-              room: socket.roomRandom,
-            }),
-            Message.deleteMany({
-              room: socket.roomRandom,
-            }),
-          ]);
-          removeUserRandom(socket.chatAPPUser);
-          socket.leave(socket.chatAPPUser.account);
-          socket.chatAPPUser = null;
-          socket.chatAPPUserPartner = null;
-          socket.roomRandom = null;
-          socket.leave(socket.roomRandom);
-          socket.userStatus = null;
-          console.log("DISCONNECTING STATUS: PARTNER-DISCONNECTED", _io.sockets.adapter.rooms);
-        } else if (socket.chatAPPUser && socket.chatAPPUserPartner && socket.userStatus === "chatting") {
-          await Promise.all([
-            ChatRoom.findOneAndUpdate(
+            ChatRoomRandom.updateOne(
               {
-                account: socket.chatAPPUser.account,
-                partner: socket.chatAPPUserPartner.account,
-                status: "chatting",
+                account: socket.chatRandom.user._id,
               },
               {
-                status: "disconnected",
+                status: null,
+                partner: null,
+                room: null,
               }
             ),
-            ChatRoom.findOneAndUpdate(
+            ChatRoomRandom.updateOne(
               {
-                account: socket.chatAPPUserPartner.account,
-                partner: socket.chatAPPUser.account,
-                status: "chatting",
+                account: socket.chatRandom.partner._id,
               },
               {
-                status: "partner-disconnected",
+                status: null,
+                partner: null,
+                room: null,
               }
             ),
           ]);
           _io.sockets
-            .in(socket.chatAPPUserPartner.account)
+            .in(socket.chatRandom.partner.account)
             .emit("send-noti-partner-disconnected", "Đối phương đã rời khỏi ứng dụng!!");
-          removeUserRandom(socket.chatAPPUser);
-          socket.leave(socket.chatAPPUser.account);
-          socket.chatAPPUser = null;
+          removeUserRandom(socket.chatRandom.user);
+          socket.chatRandom.user = null;
+          socket.chatRandom.userIO = null;
+          socket.chatRandom.partner = null;
+          socket.chatRandom.partnerIO = null;
+          socket.chatRandom.userStatus = null;
+          socket.chatRandom.room = null;
+
           console.log("ROOM AFTER USER DISCONNECTING:", _io.sockets.adapter.rooms);
         }
       }

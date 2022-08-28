@@ -236,7 +236,9 @@ exports.getDetailUserByAccount = catchAsync(async (req, res, next) => {
     return next(new AppError("Vui lòng nhập thông tin", 404));
   }
   const user = await User.findOne({ account: account })
-    .select("role status name account sex findSex createdAt following followers avatar partners messages avatarSVG")
+    .select(
+      "role status name account sex findSex createdAt following followers avatar partners messages avatarSVG email date city hideInfo active_email bio"
+    )
     .populate({
       path: "avatarSVG",
       select: "-__v -user -_id",
@@ -475,20 +477,10 @@ exports.updateDetailUser = catchAsync(async (req, res, next) => {
       {
         name: name,
         bio: bio,
+        hideInfo: JSON.parse(hideInfo),
 
         findSex: findSex,
         city: city,
-      }
-    );
-    return res.status(200).json({
-      status: "success",
-      data: "success",
-    });
-  } else if (hideInfo) {
-    const user = await User.findOneAndUpdate(
-      { account: req.user.account },
-      {
-        hideInfo: JSON.parse(hideInfo),
       }
     );
     return res.status(200).json({
