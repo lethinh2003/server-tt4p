@@ -86,6 +86,15 @@ exports.getUserNotifies = catchAsync(async (req, res, next) => {
     .sort("-_id")
     .limit(pageSize)
     .skip(skip);
+  await Notify.updateMany(
+    {
+      user_receive: userID,
+      read: false,
+    },
+    {
+      read: true,
+    }
+  );
 
   return res.status(200).json({
     status: "success",

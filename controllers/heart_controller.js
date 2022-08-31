@@ -76,7 +76,8 @@ exports.getDetailHearts = catchAsync(async (req, res, next) => {
     .select("-__v")
     .populate({
       path: "user",
-      select: "role status name account sex findSex createdAt following followers avatar",
+      select:
+        "role status name account sex createdAt following followers avatar partners messages avatarSVG city bio cover_background",
     });
 
   return res.status(200).json({

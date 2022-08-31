@@ -8,6 +8,8 @@ router.use("/hearts", require("./heart_routers"));
 router.route("/upload-file").post(authController.protect, fileUploader.single("file"), postController.uploadFile);
 router.route("/").get(authController.protect, postController.getAllPosts);
 router.route("/").post(authController.protect, postController.createPost);
+router.route("/saved").post(authController.protect, postController.savedPost);
+router.route("/saved").get(authController.protect, postController.getAllSavedPosts);
 router.route("/slug/").post(postController.getDetailPostBySlug);
 router.route("/:postID").get(authController.protect, postController.getDetailPost);
 router.route("/delete").post(authController.protect, postController.deleteDetailPost);

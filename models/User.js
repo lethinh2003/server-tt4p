@@ -87,6 +87,9 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    cover_background: {
+      type: String,
+    },
     avatarSVG: {
       type: mongoose.Schema.ObjectId,
       ref: "AvatarUser",

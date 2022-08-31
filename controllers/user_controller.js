@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Post = require("../models/Post");
 const PostActivity = require("../models/PostActivity");
+const PostSaved = require("../models/PostSaved");
 const Follow = require("../models/Follow");
 const AvatarUser = require("../models/AvatarUser");
 const System = require("../models/System");
@@ -220,7 +221,9 @@ exports.getDetailUser = catchAsync(async (req, res, next) => {
     return next(new AppError("Có lỗi xảy ra khi lấy thông tin tài khoản", 404));
   }
   const user = await User.findOne({ account: account })
-    .select("role status name account sex findSex createdAt following followers avatar partners messages avatarSVG")
+    .select(
+      "role status name account sex findSex createdAt following followers avatar partners messages avatarSVG email date city hideInfo active_email bio cover_background"
+    )
     .populate({
       path: "avatarSVG",
       select: "-__v -user -_id",
@@ -235,14 +238,28 @@ exports.getDetailUserByAccount = catchAsync(async (req, res, next) => {
   if (!account) {
     return next(new AppError("Vui lòng nhập thông tin", 404));
   }
-  const user = await User.findOne({ account: account })
-    .select(
-      "role status name account sex findSex createdAt following followers avatar partners messages avatarSVG email date city hideInfo active_email bio"
-    )
-    .populate({
-      path: "avatarSVG",
-      select: "-__v -user -_id",
-    });
+  let user = User.findOne({ account: account });
+  if (account === req.user.account) {
+    user = user
+      .select(
+        "role status name account sex findSex createdAt following followers avatar partners messages avatarSVG email date city hideInfo active_email bio cover_background"
+      )
+      .populate({
+        path: "avatarSVG",
+        select: "-__v -user -_id",
+      });
+  } else {
+    user = user
+      .select(
+        "role status name account sex createdAt following followers avatar partners messages avatarSVG city bio cover_background"
+      )
+      .populate({
+        path: "avatarSVG",
+        select: "-__v -user -_id",
+      });
+  }
+  user = await user;
+
   if (!user) {
     return next(new AppError("Tài khoản không tồn tại", 404));
   }
@@ -378,6 +395,30 @@ exports.getAllActivitiesByAccount = catchAsync(async (req, res, next) => {
     results: posts.length,
   });
 });
+exports.getAllPostsSavedByAccount = catchAsync(async (req, res, next) => {
+  const { userID } = req.params;
+
+  const pageSize = req.query.pageSize * 1 || 5;
+  const page = req.query.page * 1 || 1;
+  const skip = (page - 1) * pageSize;
+  let sortType = "-createdAt";
+  if (!userID) {
+    return next(new AppError("Vui lòng nhập đầy đủ thông tin", 404));
+  }
+  let posts;
+
+  posts = PostSaved.find({
+    user: { $in: [userID] },
+  });
+
+  posts = posts.skip(skip).limit(pageSize).sort(sortType);
+  posts = await posts;
+  return res.status(200).json({
+    status: "success",
+    data: posts,
+    results: posts.length,
+  });
+});
 exports.getAllFollowingsByAccount = catchAsync(async (req, res, next) => {
   const { userID } = req.params;
   const pageSize = req.query.pageSize * 1 || 5;
@@ -489,6 +530,24 @@ exports.updateDetailUser = catchAsync(async (req, res, next) => {
     });
   }
 });
+exports.updateCoverBackgroundDetailUser = catchAsync(async (req, res, next) => {
+  const { color } = req.body;
+
+  if (!color) {
+    return next(new AppError("Vui lòng nhập thông tin", 404));
+  }
+
+  const user = await User.findOneAndUpdate(
+    { account: req.user.account },
+    {
+      cover_background: color,
+    }
+  );
+  return res.status(200).json({
+    status: "success",
+    data: "success",
+  });
+});
 exports.followsUser = catchAsync(async (req, res, next) => {
   const { userId } = req.body;
 
@@ -558,7 +617,9 @@ exports.suggestionFriends = catchAsync(async (req, res, next) => {
     User.find()
       .skip(random)
       .limit(limitRandomRecord)
-      .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
+      .select(
+        "role status name account sex createdAt following followers avatar partners messages avatarSVG city bio cover_background"
+      )
       .populate({
         path: "avatarSVG",
         select: "-__v -user -_id",

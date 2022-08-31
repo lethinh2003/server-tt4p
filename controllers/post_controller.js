@@ -1,5 +1,6 @@
 const Post = require("../models/Post");
 const PostActivity = require("../models/PostActivity");
+const PostSaved = require("../models/PostSaved");
 const PostComment = require("../models/PostComment");
 const PostRepComment = require("../models/PostRepComment");
 const PostHeart = require("../models/PostHeart");
@@ -12,6 +13,7 @@ const validator = require("validator");
 const sendEmail = require("../utils/email");
 const crypto = require("crypto");
 const { json } = require("body-parser");
+var mongoose = require("mongoose");
 exports.uploadFile = catchAsync(async (req, res, next) => {
   if (!req.file) {
     return next(new AppError("No file uploaded!", 404));
@@ -140,6 +142,16 @@ exports.getDetailPostActivity = catchAsync(async (req, res, next) => {
     data: getPostActivity,
   });
 });
+exports.getAllSavedPosts = catchAsync(async (req, res, next) => {
+  const posts = await PostSaved.find({
+    user: { $in: [req.user.id] },
+  });
+
+  return res.status(200).json({
+    status: "success",
+    data: posts,
+  });
+});
 exports.getDetailPostHearts = catchAsync(async (req, res, next) => {
   const { postID } = req.params;
   const getPost = await Post.findOne({
@@ -166,6 +178,45 @@ exports.deleteDetailPostActivity = catchAsync(async (req, res, next) => {
   return res.status(200).json({
     status: "success",
   });
+});
+exports.savedPost = catchAsync(async (req, res, next) => {
+  let { postID } = req.body;
+  if (!postID) {
+    return next(new AppError("Please fill in all fields", 404));
+  }
+
+  const checkIsSaved = await PostSaved.findOneAndUpdate(
+    {
+      user: { $in: [req.user._id] },
+      post: { $in: [postID] },
+    },
+    {},
+    {
+      new: false,
+      upsert: false,
+    }
+  );
+  if (!checkIsSaved) {
+    await PostSaved.create({
+      user: [req.user._id],
+      post: [postID],
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "saved_success",
+    });
+  } else {
+    await PostSaved.deleteOne({
+      user: { $in: [req.user._id] },
+      post: { $in: [postID] },
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "unsaved_success",
+    });
+  }
 });
 exports.getAllPosts = catchAsync(async (req, res, next) => {
   const pageSize = req.query.pageSize * 1 || 5;

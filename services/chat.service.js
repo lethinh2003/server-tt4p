@@ -30,7 +30,9 @@ class SocketServices {
         const updateUser = await User.findOne({
           account: user.account,
         })
-          .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
+          .select(
+            "role status name account sex createdAt following followers avatar partners messages avatarSVG city bio cover_background"
+          )
           .populate({
             path: "avatarSVG",
             select: "-__v -user -_id",
@@ -135,7 +137,9 @@ class SocketServices {
           const getPartner = await User.findOne({
             account: dataFindPartner.partner.account,
           })
-            .select("role status name account sex createdAt following followers avatar partners messages avatarSVG")
+            .select(
+              "role status name account sex createdAt following followers avatar partners messages avatarSVG city bio cover_background"
+            )
             .populate({
               path: "avatarSVG",
               select: "-__v -user -_id",
