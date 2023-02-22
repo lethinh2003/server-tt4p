@@ -59,7 +59,7 @@ exports.loginUser = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     accessToken: token,
-    accessTokenExpiry: Date.now() + 60 * 60 * 1000,
+    accessTokenExpiry: Date.now() + parseInt(JWT_EXPIRES) * 1000,
     refreshToken,
     data: user,
   });
