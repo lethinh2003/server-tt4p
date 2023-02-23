@@ -38,12 +38,15 @@ exports.loginUser = catchAsync(async (req, res, next) => {
     return next(new AppError("Mật khẩu không hợp lệ", 401));
   }
 
-  const token = signToken({
-    id: user._id,
-    account: user.account,
-    role: user.role,
-    type: "AT",
-  });
+  const token = signToken(
+    {
+      id: user._id,
+      account: user.account,
+      role: user.role,
+      type: "AT",
+    },
+    parseInt(JWT_EXPIRES)
+  );
   const refreshToken = signToken(
     {
       id: user._id,
@@ -105,7 +108,7 @@ exports.refreshToken = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: "success",
     accessToken: newToken,
-    accessTokenExpiry: Date.now() + 60 * 60 * 1000,
+    accessTokenExpiry: Date.now() + parseInt(JWT_EXPIRES) * 1000,
     refreshToken: newRefreshToken,
   });
 });
